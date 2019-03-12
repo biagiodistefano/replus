@@ -1,0 +1,14 @@
+{
+  "!number": [
+    "\\d"
+  ],
+  "abg": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "patterns": [
+    "This is an unnamed number group: {{number}}.",
+    "I can match {{abg}} and {{abg}}, and then re-match the last {{#abg}} or the second last {{#abg@2}}"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "day": [
+    "3[01]",
+    "[12][0-9]",
+    "0?[1-9]"
+  ],
+  "month": [
+    "0?[1-9]",
+    "1[012]"
+  ],
+  "month_name": [
+    "jan(uary|\\.?)",
+    "feb(bruary|\\.?)",
+    "mar(ch|\\.?)",
+    "apr(il|\\.?)",
+    "may",
+    "jun(e|\\.?)",
+    "jul(y|\\.?)",
+    "aug(ust|\\.?)",
+    "sep(t\\.?|tember|\\.?)",
+    "oct(ober|\\.?)",
+    "nov(ember|\\.?)",
+    "dec(ember|\\.?)"
+  ],
+  "year": [
+    "\\d{4}"
+  ],
+  "date": [
+    "{{day}}/{{month}}/{{year}}",
+    "{{month_name}} {{day}}(rd|st|th)? {{year}}"
+  ],
+  "patterns": [
+    "{{date}}"
+  ]
+}
