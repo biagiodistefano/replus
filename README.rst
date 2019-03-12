@@ -65,17 +65,28 @@ It is possible to query as follows:
         print(year)
         # [Group year_1] span(19, 23): 2012>
 
-Match objects have the following attributes: - type: the type of match
-(e.g. "dates"); - match: the re.match object; - re: the regex pattern; -
-all\_group\_names: the name of all the children groups;
+Match objects have the following attributes:
 
-Both Match and Group objects have the following attributes: - value: the
-string value of the match/group - start: the beginning of the
-match/group relative to the input string - end: the end of the group
-relative to the input string - offset (start, end) - length (end-start)
+- type: the type of match (e.g. "dates");
+- match: the re.match object;
+- re: the regex pattern;
+- all\_group\_names: the name of all the children groups;
 
-Group objects have the following attributes: - name: the actual group
-name (e.g. date\_1); - key: the group key (e.g. date);
+Both Match and Group objects have the following attributes:
+
+- value: the string value of the match/group
+- start: the beginning of the match/group relative to the input string
+- end: the end of the group relative to the input string
+- offset (start, end)
+- length (end-start)
+
+Group objects have the following attributes:
+
+- name: the actual group name (e.g. date\_1);
+- key: the group key (e.g. date);
+
+Both Match and Group objects can be serialized in dicts with the ``serialize()`` method and
+to a json string with the ``json`` attribute
 
 Secondary features
 ~~~~~~~~~~~~~~~~~~
