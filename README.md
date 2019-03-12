@@ -76,6 +76,9 @@ Group objects have the following attributes:
 - name: the actual group name (e.g. date_1);
 - key: the group key (e.g. date);
 
+Both Match and Group objects can be serialized in dicts with the `serialize()` method and
+to a json string with the `json` attribute
+
 ### Secondary features
 There are two useful secondary features:
 
