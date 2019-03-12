@@ -1,6 +1,19 @@
 # replus
 A wrapper for Python's re library for advanced regex pattern management
 
+## Installation
+
+`pip install replus`
+
+or clone this repo
+
+`git@github.com:raptored01/replus.git`
+
+and then run
+
+`python setup.py install`
+
+
 ## Basic usage
 
 The Engine loads Regular Expression **pattern templates** written in *.json files from the provided directory,
