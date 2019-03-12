@@ -56,9 +56,10 @@ will result in the following regex:
 It is possible to query as follows:
 
 ::
-
+    from replus import Engine
+    
     engine = Engine('models')
-    for match in parser.parse("Look at this date: 2012-20-10"):
+    for match in engine.parse("Look at this date: 2012-20-10"):
         print(match)
         # <[Match date] span(19, 29): 2012-12-10>
 
