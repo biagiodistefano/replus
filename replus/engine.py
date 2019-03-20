@@ -9,13 +9,15 @@ from .helpers import load_models
 
 class Engine:
     group_pattern = r"{{((#)?([\w_]+)(@(\d+))?)}}"  # regex used to match the groups' placeholder
-    group_counter = Counter()  # counter object to count group name occurance on each template
-    patterns = []  # will be a list of tuples [(key, pattern, template)]
-    patterns_src = {}  # a giant dict containing all of models/*.json combined together, "patterns" excluded
-    patterns_all = {}  # all "patterns", e.g. { "judicial_references": [pattern0, pattern1], ... }
-    __all_groups = defaultdict(list)  # { pattern_template_A: [my_group_0, my_group_1 ...], pattern_template_B: [...]}
 
     def __init__(self, model: str, *flags, separator: str = None):
+
+        self.group_counter = Counter()  # counter object to count group name occurance on each template
+        self.patterns = []  # will be a list of tuples [(key, pattern, template)]
+        self.patterns_src = {}  # a giant dict containing all of models/*.json combined together, "patterns" excluded
+        self.patterns_all = {}  # all "patterns", e.g. { "judicial_references": [pattern0, pattern1], ... }
+        self.all_groups = defaultdict(list)  # { pattern_template_A: [my_group_0, my_group_1 ...], pattern_template_B: [...]}
+        
         _flags = 0
         for f in flags:
             _flags |= FLAG_MAP[f]
@@ -41,7 +43,7 @@ class Engine:
             if filters and k not in filters or (k in exclude):
                 continue
             for m in re.finditer(pattern, string):
-                match = self.Match(k, m, self.__all_groups[template], pattern)
+                match = self.Match(k, m, self.all_groups[template], pattern)
                 matches.append(match)
         if not allow_overlap:
             return self.purge_overlaps(matches)
@@ -71,7 +73,7 @@ class Engine:
                     f"(?P<{group_name}_{group_count}>{self.__build_alts(alts)})",
                     1
                 )
-                self.__all_groups[template].append(f"{group_name}_{group_count}")
+                self.all_groups[template].append(f"{group_name}_{group_count}")
                 self.group_counter[group_name] += 1
             else:
                 back_reference_index = int(group_match.group(5)) if group_match.group(5) else 1
