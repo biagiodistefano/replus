@@ -137,7 +137,7 @@ It will generate the following regexs:
 
 ``This is an unnamed number group: (?:\d).``
 
-``I can match (?P<abg_0>alpha|gamma|beta) and (?P<abg_1>alpha|gamma|beta), and then re-match the last (?P=abg_1) or the second last (?P=abg_0)``
+``I can match (?P<abg_0>alpha|beta|gamma) and (?P<abg_1>alpha|beta|gamma), and then re-match the last (?P=abg_1) or the second last (?P=abg_0)``
 
 **N.B.**: in order to obtain an escape char, such as ``\d``, in the
 pattern's model it **must** be double escaped: ``\\d``
