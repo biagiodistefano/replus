@@ -28,7 +28,7 @@ class Engine:
             self.patterns = [(k, re.compile(re.sub(r" |\\\s", f"({separator})", p), _flags), t)
                              for k, p, t in self.patterns]
         else:
-            self.patterns = [(k, re.compile(p, *flags), t) for k, p, t in self.patterns]
+            self.patterns = [(k, re.compile(p, _flags), t) for k, p, t in self.patterns]
 
     def parse(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
         """Return a list of Match objects
