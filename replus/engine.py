@@ -51,7 +51,7 @@ class Engine:
         return matches
 
     def search(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
-        for m in self.parse(string, *filters, exclude=exclude, allaw_overlap=allow_overlap):
+        for m in self.parse(string, *filters, exclude=exclude, allow_overlap=allow_overlap):
             return m
         return None
 
