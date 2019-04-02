@@ -50,6 +50,11 @@ class Engine:
         matches.sort(key=lambda x: x.start)
         return matches
 
+    def search(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
+        for m in self.parse(string, *filters, exclude=exclude, allaw_overlap=allow_overlap):
+            return m
+        return None
+
     def __build_patterns(self):
         for key, patterns in self.patterns_all.items():
             for pattern in patterns:
