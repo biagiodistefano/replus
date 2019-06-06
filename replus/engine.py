@@ -179,6 +179,18 @@ class Engine:
             o["groups"] = dict(o["groups"])
             return o
 
+        def first(self):
+            try:
+                return self.groups()[0]
+            except IndexError:
+                return None
+
+        def last(self):
+            try:
+                return self.groups()[-1]
+            except IndexError:
+                return None
+
         @property
         def json(self):
             return json.dumps(self.serialize(), indent=2)
@@ -232,6 +244,18 @@ class Engine:
                 if len(groups):
                     return groups[0]
                 else:
+                    return None
+
+            def first(self):
+                try:
+                    return self.groups()[0]
+                except IndexError:
+                    return None
+
+            def last(self):
+                try:
+                    return self.groups()[-1]
+                except IndexError:
                     return None
 
             def serialize(self):

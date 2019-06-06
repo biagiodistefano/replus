@@ -42,6 +42,12 @@ class TestEngine(unittest.TestCase):
         year = date.group("year")
         self.assertEqual(year.value, "1970")
 
+    def test_first(self):
+        engine = Engine(test_models_path)
+        date_match = engine.search("Today it's january 1st 1970", "date")
+        first = date_match.first()
+        self.assertTrue(first is not None)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -93,8 +93,10 @@ Both Match and Group objects have the following attributes:
 - value: the string value of the match/group
 - start: the beginning of the match/group relative to the input string
 - end: the end of the group relative to the input string
-- offset (start, end)
-- length (end-start)
+- offset: (start, end)
+- length: end-start
+- first(): get the first matching group
+- last(): get the last matching group
 
 Group objects have the following attributes:
 
