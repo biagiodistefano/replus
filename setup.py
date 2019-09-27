@@ -5,9 +5,9 @@
     setup.py
     ~~~~~~~~
 
-    no description available
+    A library for managing regex in a template fashion
 
-    :copyright: (c) 2019 by biagio.
+    :copyright: (c) 2019 by Biagio Distefano.
     :license: see LICENSE for more details.
 """
 

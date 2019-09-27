@@ -1,7 +1,7 @@
 replus
 ======
 
-A wrapper for Python's re library for advanced regex pattern management
+A wrapper for the ``regex`` library for advanced pattern management
 
 Installation
 ------------
@@ -53,6 +53,11 @@ will result in the following regex:
 
 ``(?P<date_0>(?P<day_0>[12][0-9]|0?[1-9]|3[01])/(?P<month_0>0?[1-9]|1[012])/(?P<year_0>\d{4})|(?P<year_1>\d{4})-(?P<month_1>0?[1-9]|1[012])-(?P<day_1>[12][0-9]|0?[1-9]|3[01]))``
 
+You can put more patterns into ``patterns``, as it will become a list that will be looped over.
+
+Querying
+--------
+
 It is possible to query as follows:
 
 ::
@@ -81,27 +86,44 @@ It is possible to query as follows:
         print(year)
         # [Group year_1] span(19, 23): 2012>
 
+filtering
+.........
+
+it is possible to filter regexes by type, being the type given by the json's filename
+
+::
+
+    filters = ["dates", "cities"]
+    for match in engine.parse(my_string, *filters):
+        # do stuff
+
+
 Match objects have the following attributes:
 
-- type: the type of match (e.g. "dates");
-- match: the re.match object;
-- re: the regex pattern;
-- all\_group\_names: the name of all the children groups;
+- ``type``: the type of match (e.g. "dates");
+- ``match``: the re.match object;
+- ``re``: the regex pattern;
+- ``all_group_names``: the name of all the children groups;
 
 Both Match and Group objects have the following attributes:
 
-- value: the string value of the match/group
-- start: the beginning of the match/group relative to the input string
-- end: the end of the group relative to the input string
-- offset: (start, end)
-- length: end-start
-- first(): get the first matching group
-- last(): get the last matching group
+- ``value``: the string value of the match/group
+- ``start``: the beginning of the match/group relative to the input string
+- ``end``: the end of the group relative to the input string
+- ``span``: ``(start, end)`` the span of the match/group object relative to the input string
+- ``offset``: ``{"start": start, "end": end}`` similar to ``span``
+- ``length``: end-start
+- ``first()``: get the first matching group
+- ``last()``: get the last matching group
 
 Group objects have the following attributes:
 
-- name: the actual group name (e.g. date\_1);
-- key: the group key (e.g. date);
+- ``name``: the actual group name (e.g. date\_1);
+- ``key``: the group key (e.g. date);
+- ``spans``: ``[(start, end), ...]`` the spans of the repeated matches relative to the input string
+- ``starts``: the beginnings of the match/group relative to the input string
+- ``ends``: the ends of the group relative to the input string
+- ``offsets``: ``[{"start": start, "end": end}, ...]``
 
 Both Match and Group objects can be serialized in dicts with the ``serialize()`` method and
 to a json string with the ``json`` attribute
