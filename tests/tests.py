@@ -47,6 +47,11 @@ class TestEngine(unittest.TestCase):
         first = date_match.first()
         self.assertTrue(first is not None)
 
+    def test_repeat(self):
+        engine = Engine(test_models_path)
+        repeat_match = engine.search("foobar 34 of 1997 15 of 1988 45 of 1975")
+        self.assertEqual(len(repeat_match.group("numyear").spans), 3)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
