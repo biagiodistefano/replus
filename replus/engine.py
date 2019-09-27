@@ -150,7 +150,9 @@ class Engine:
                     try:
                         g = self.match.group(group_i)
                         if g is not None:
-                            groups.append(self.Group(self.match, group_i, self))
+                            for j, (start, end) in enumerate(self.match.spans(group_i)):
+                                if self.start <= start and end <= self.end:
+                                    groups.append(self.Group(self.match, group_i, self, rep_index=j))
                     except IndexError:
                         break
                     if group_query is None:
