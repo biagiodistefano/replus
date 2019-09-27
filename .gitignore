@@ -106,3 +106,5 @@ venv.bak/
 # Custom
 .idea
 .DS_Store
+.vscode/
+junk/
