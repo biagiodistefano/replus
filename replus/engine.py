@@ -1,5 +1,5 @@
 import json
-import re
+import regex
 from collections import Counter
 from collections import defaultdict
 
@@ -10,25 +10,25 @@ from .helpers import load_models
 class Engine:
     group_pattern = r"{{((#)?([\w_]+)(@(\d+))?)}}"  # regex used to match the groups' placeholder
 
-    def __init__(self, model: str, *flags, separator: str = None):
+    def __init__(self, model: str, *flags, ws_noise: str = None):
 
         self.group_counter = Counter()  # counter object to count group name occurance on each template
         self.patterns = []  # will be a list of tuples [(key, pattern, template)]
         self.patterns_src = {}  # a giant dict containing all of models/*.json combined together, "patterns" excluded
         self.patterns_all = {}  # all "patterns", e.g. { "judicial_references": [pattern0, pattern1], ... }
-        self.all_groups = defaultdict(list)  # { pattern_template_A: [my_group_0, my_group_1 ...], pattern_template_B: [...]}
-        
+        self.all_groups = defaultdict(list)  # { pattern_template_A: [my_group_0, my_group_1 ...], ...}
+
         _flags = 0
         for f in flags:
             _flags |= FLAG_MAP[f]
         self.__load_models(model)
         self.__build_patterns()
         # self.patterns.sort(key=lambda x: len(x[1]), reverse=True)
-        if separator is not None:
-            self.patterns = [(k, re.compile(re.sub(r" |\\\s", f"({separator})", p), _flags), t)
+        if ws_noise is not None:
+            self.patterns = [(k, regex.compile(regex.sub(r" |\\\s", f"({ws_noise})", p), _flags), t)
                              for k, p, t in self.patterns]
         else:
-            self.patterns = [(k, re.compile(p, _flags), t) for k, p, t in self.patterns]
+            self.patterns = [(k, regex.compile(p, _flags), t) for k, p, t in self.patterns]
 
     def parse(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
         """Return a list of Match objects
@@ -42,7 +42,7 @@ class Engine:
         for k, pattern, template in self.patterns:
             if filters and k not in filters or (k in exclude):
                 continue
-            for m in re.finditer(pattern, string):
+            for m in regex.finditer(pattern, string):
                 match = self.Match(k, m, self.all_groups[template], pattern)
                 matches.append(match)
         if not allow_overlap:
@@ -62,7 +62,7 @@ class Engine:
                 self.patterns.append((key, self.__build_pattern(pattern, pattern), pattern))
 
     def __build_pattern(self, pattern, template):
-        for group_match in re.finditer(self.group_pattern, pattern):
+        for group_match in regex.finditer(self.group_pattern, pattern):
             return self.__build_pattern(self.__build_group(group_match, pattern, template), template)
         return pattern
 
@@ -83,7 +83,7 @@ class Engine:
             else:
                 back_reference_index = int(group_match.group(5)) if group_match.group(5) else 1
                 assert group_count >= back_reference_index, f"Attempting to reference unexisting group: " \
-                    f"{group_count - back_reference_index}"
+                                                            f"{group_count - back_reference_index}"
                 new_pattern = pattern.replace(
                     f"{{{{{group_match.group(1)}}}}}",
                     f"(?P={group_name}_{group_count - back_reference_index})",
@@ -203,13 +203,18 @@ class Engine:
                 self.root = root
                 self.match = match
                 self.start = match.start(group_name)
+                self.starts = match.starts(group_name)
                 self.end = match.end(group_name)
+                self.ends = match.ends(group_name)
                 self.span = match.span(group_name)
+                self.spans = match.spans(group_name)
                 self.offset = {"start": self.start, "end": self.end}
+                self.offsets = [{"start": s[0], "end": s[1]} for s in self.spans]
                 self.value = match.group(group_name)
+                self.values = match.captures(group_name)
                 self.name = group_name
                 self.length = self.end - self.start
-                self.key = re.sub(r"_\d+$", r"", self.name)
+                self.key = regex.sub(r"_\d+$", r"", self.name)
 
             def groups(self, group_query=None, root=False):
                 def is_next(g1, g2):
@@ -223,7 +228,7 @@ class Engine:
                     while True:
                         if group_query is not None:
                             group_i = f"{group_name}_{i}"
-                        if self.name != group_i:  # doesn't return itsel, just its children
+                        if self.name != group_i:  # doesn't return itself, just its children
                             try:
                                 g = self.match.group(group_i)
                                 if g is not None and is_next(group_i, self.name):  # returning just its children

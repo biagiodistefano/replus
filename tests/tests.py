@@ -1,6 +1,5 @@
-import unittest
 import os
-import re
+import unittest
 
 from replus import Engine
 
