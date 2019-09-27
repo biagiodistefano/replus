@@ -53,6 +53,7 @@ setup(
     platforms='any',
     license='LICENSE',
     install_requires=[
+        'regex>=2019.8.19'
     ],
     test_suite='nose.collector',
     tests_require=['nose'],
