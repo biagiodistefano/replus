@@ -199,22 +199,18 @@ class Engine:
             return f"<[Match {self.type}] span{self.span}: {self.value}>"
 
         class Group:
-            def __init__(self, match, group_name, root):
+            def __init__(self, match, group_name, root, rep_index=0):
                 self.root = root
                 self.match = match
-                self.start = match.start(group_name)
-                self.starts = match.starts(group_name)
-                self.end = match.end(group_name)
-                self.ends = match.ends(group_name)
-                self.span = match.span(group_name)
-                self.spans = match.spans(group_name)
+                self.start = match.starts(group_name)[rep_index]
+                self.end = match.ends(group_name)[rep_index]
+                self.span = match.spans(group_name)[rep_index]
                 self.offset = {"start": self.start, "end": self.end}
-                self.offsets = [{"start": s[0], "end": s[1]} for s in self.spans]
-                self.value = match.group(group_name)
-                self.values = match.captures(group_name)
+                self.value = match.captures(group_name)[rep_index]
                 self.name = group_name
                 self.length = self.end - self.start
                 self.key = regex.sub(r"_\d+$", r"", self.name)
+                self.rep_index = rep_index
 
             def groups(self, group_query=None, root=False):
                 def is_next(g1, g2):
@@ -232,8 +228,9 @@ class Engine:
                             try:
                                 g = self.match.group(group_i)
                                 if g is not None and is_next(group_i, self.name):  # returning just its children
-                                    if self.start <= self.match.start(group_i) and self.match.end(group_i) <= self.end:
-                                        groups.append(self.__class__(self.match, group_i, self.root))
+                                    for j, (start, end) in enumerate(self.match.spans(group_i)):
+                                        if self.start <= start and end <= self.end:
+                                            groups.append(self.__class__(self.match, group_i, self.root, rep_index=j))
                             except IndexError:
                                 break
                         if group_query is None:
@@ -279,8 +276,16 @@ class Engine:
             def json(self):
                 return json.dumps(self.serialize(), indent=2)
 
+            def reps(self):
+                if len(self.match.starts(self.name)) > 1:
+                    return [
+                        self.__class__(self.match, self.name, self.root, rep_index=i)
+                        for i in range(len(self.match.starts(self.name)))
+                    ]
+                return []
+
             def __repr__(self):
-                return f"<[Group {self.name}] span{self.span}: {self.value}>"
+                return f"<Group {self.name} span{self.span} @{self.rep_index}: '{self.value}'>"
 
     class Exceptions:
 
