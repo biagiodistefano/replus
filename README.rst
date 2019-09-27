@@ -53,7 +53,7 @@ will result in the following regex:
 
 ``(?P<date_0>(?P<day_0>[12][0-9]|0?[1-9]|3[01])/(?P<month_0>0?[1-9]|1[012])/(?P<year_0>\d{4})|(?P<year_1>\d{4})-(?P<month_1>0?[1-9]|1[012])-(?P<day_1>[12][0-9]|0?[1-9]|3[01]))``
 
-You can put more patterns into ``patterns``, as it will become a list that will be looped over.
+You can put more patterns into ``patterns``, as it will become a ``list`` that will be looped over.
 
 Querying
 --------
@@ -86,8 +86,8 @@ It is possible to query as follows:
         print(year)
         # [Group year_1] span(19, 23): 2012>
 
-filtering
-.........
+Filtering
+---------
 
 it is possible to filter regexes by type, being the type given by the json's filename
 
@@ -97,6 +97,10 @@ it is possible to filter regexes by type, being the type given by the json's fil
     for match in engine.parse(my_string, *filters):
         # do stuff
 
+
+
+Match and Group objects
+-----------------------
 
 Match objects have the following attributes:
 
