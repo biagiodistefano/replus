@@ -8,7 +8,7 @@ from .helpers import load_models
 
 
 class Engine:
-    group_pattern = r"{{((#)?([\w_]+)(@(\d+))?)}}"  # regex used to match the groups' placeholder
+    group_pattern = r"{{((#|\?[:>])?([\w_]+)(@(\d+))?)}}"  # regex used to match the groups' placeholder
 
     def __init__(self, model: str, *flags, ws_noise: str = None):
 
@@ -59,7 +59,10 @@ class Engine:
         for key, patterns in self.patterns_all.items():
             for pattern in patterns:
                 self.group_counter = Counter()
-                self.patterns.append((key, self.__build_pattern(pattern, pattern), pattern))
+                try:
+                    self.patterns.append((key, self.__build_pattern(pattern, pattern), pattern))
+                except Exception as e:
+                    raise Exception(e, f"Fatal error building patterns in file '{key}.json'")
 
     def __build_pattern(self, pattern, template):
         for group_match in regex.finditer(self.group_pattern, pattern):
@@ -67,36 +70,49 @@ class Engine:
         return pattern
 
     def __build_group(self, group_match, pattern, template):
-        group_name = group_match.group(3)
-        is_backreference = group_match.group(2) == "#"
-        alts = self.patterns_src.get(group_name)
+        group_key = group_match.group(3)
+        special = group_match.group(2)
+        alts = self.patterns_src.get(group_key)
         if alts is not None:
-            group_count = self.group_counter[group_name]
-            if not is_backreference:
+            group_count = self.group_counter[group_key]
+            if special is None:
                 new_pattern = pattern.replace(
-                    f"{{{{{group_name}}}}}",
-                    f"(?P<{group_name}_{group_count}>{self.__build_alts(alts)})",
+                    f"{{{{{group_key}}}}}",
+                    f"(?P<{group_key}_{group_count}>{self.__build_alts(alts)})",
                     1
                 )
-                self.all_groups[template].append(f"{group_name}_{group_count}")
-                self.group_counter[group_name] += 1
+                self.all_groups[template].append(f"{group_key}_{group_count}")
+                self.group_counter[group_key] += 1
             else:
-                back_reference_index = int(group_match.group(5)) if group_match.group(5) else 1
-                assert group_count >= back_reference_index, f"Attempting to reference unexisting group: " \
-                                                            f"{group_count - back_reference_index}"
-                new_pattern = pattern.replace(
-                    f"{{{{{group_match.group(1)}}}}}",
-                    f"(?P={group_name}_{group_count - back_reference_index})",
-                    1
-                )
+                if special == "#":
+                    back_reference_index = int(group_match.group(5)) if group_match.group(5) else 1
+                    assert group_count >= back_reference_index, f"Attempting to reference unexisting group: " \
+                                                                f"{group_count - back_reference_index}"
+                    new_pattern = pattern.replace(
+                        f"{{{{{group_match.group(1)}}}}}",
+                        f"(?P={group_key}_{group_count - back_reference_index})",
+                        1
+                    )
+                else:
+                    new_pattern = pattern.replace(
+                        f"{{{{{special+group_key}}}}}",
+                        f"({special}{self.__build_alts(alts)})",
+                        1
+                    )
+                    self.group_counter[group_key] += 1
         else:
-            alts = self.patterns_src.get(f"!{group_name}")
-            if alts is None:
-                raise self.Exceptions.UnknownTemplateGroup(group_name)
-            new_pattern = pattern.replace(
-                f"{{{{{group_name}}}}}",
-                f"(?:{self.__build_alts(alts)})"
-            )
+            if special:
+                raise self.Exceptions.RepeatedSpecialGroup(f"Repeated special group for {group_key}: '{special}'")
+            for sk in ["?:", "?>"]:
+                alts = self.patterns_src.get(f"{sk}{group_key}")
+                if alts is not None:
+                    new_pattern = pattern.replace(
+                        f"{{{{{group_key}}}}}",
+                        f"({sk}{self.__build_alts(alts)})"
+                    )
+                    assert new_pattern != pattern, f"Could not build pattern '{group_key}'"
+                    return new_pattern
+            raise self.Exceptions.UnknownTemplateGroup(group_key)
         return new_pattern
 
     @staticmethod
@@ -292,4 +308,7 @@ class Engine:
     class Exceptions:
 
         class UnknownTemplateGroup(Exception):
+            pass
+
+        class RepeatedSpecialGroup(Exception):
             pass

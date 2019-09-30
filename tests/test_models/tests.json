@@ -1,5 +1,5 @@
 {
-  "!number": [
+  "?:number": [
     "\\d"
   ],
   "abg": [
@@ -7,8 +7,15 @@
     "beta",
     "gamma"
   ],
+  "spam": [
+    "spam"
+  ],
+  "eggs": [
+    "eggs"
+  ],
   "patterns": [
     "This is an unnamed number group: {{number}}.",
-    "I can match {{abg}} and {{abg}}, and then re-match the last {{#abg}} or the second last {{#abg@2}}"
+    "I can match {{abg}} and {{abg}}, and then re-match the last {{#abg}} or the second last {{#abg@2}}",
+    "Here is some {{?:spam}} and some {{?>eggs}}"
   ]
 }
