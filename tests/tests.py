@@ -16,7 +16,10 @@ class TestEngine(unittest.TestCase):
         expected = [
             r"This is an unnamed number group: (?:\d).",
             r"I can match (?P<abg_0>alpha|beta|gamma) and (?P<abg_1>alpha|beta|gamma), and then re-match the last (?P=abg_1) or the second last (?P=abg_0)",
-            r"Here is some (?:spam) and some (?>eggs)"
+            r"Here is some (?:spam) and some (?>eggs)",
+            r"(?<!foo|bar) blah blah, (?!foo|bar) foo foo, (?<=foo|bar) bar bar, (?=foo|bar) yoyo",
+            r"(?<=alpha|beta|gamma) (?<!alpha|beta|gamma) (?!alpha|beta|gamma) (?=alpha|beta|gamma)"
+
         ]
         for i, p in enumerate(patterns):
             self.assertEqual(p, expected[i])

@@ -8,7 +8,7 @@ from .helpers import load_models
 
 
 class Engine:
-    group_pattern = r"{{((#|\?[:>])?([\w_]+)(@(\d+))?)}}"  # regex used to match the groups' placeholder
+    group_pattern = r"{{((?P<special>#|\?[:>!=]|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder
 
     def __init__(self, model: str, *flags, ws_noise: str = None):
 
@@ -70,8 +70,8 @@ class Engine:
         return pattern
 
     def __build_group(self, group_match, pattern, template):
-        group_key = group_match.group(3)
-        special = group_match.group(2)
+        group_key = group_match.group("key")
+        special = group_match.group("special")
         alts = self.patterns_src.get(group_key)
         if alts is not None:
             group_count = self.group_counter[group_key]
@@ -85,7 +85,7 @@ class Engine:
                 self.group_counter[group_key] += 1
             else:
                 if special == "#":
-                    back_reference_index = int(group_match.group(5)) if group_match.group(5) else 1
+                    back_reference_index = int(group_match.group("index")) if group_match.group("index") else 1
                     assert group_count >= back_reference_index, f"Attempting to reference unexisting group: " \
                                                                 f"{group_count - back_reference_index}"
                     new_pattern = pattern.replace(
@@ -103,7 +103,7 @@ class Engine:
         else:
             if special:
                 raise self.Exceptions.RepeatedSpecialGroup(f"Repeated special group for {group_key}: '{special}'")
-            for sk in ["?:", "?>"]:
+            for sk in ["?:", "?>", "?!", "?=", "?<=", "?<!"]:
                 alts = self.patterns_src.get(f"{sk}{group_key}")
                 if alts is not None:
                     new_pattern = pattern.replace(
