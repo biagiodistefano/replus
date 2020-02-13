@@ -217,9 +217,8 @@ class Engine:
             return f"<[Match {self.type}] span{self.span}: {self.value}>"
 
         class Group:
-            def __init__(self, match, group_name, root, rep_index=0, parent=None):
+            def __init__(self, match, group_name, root, rep_index=0):
                 self.root = root
-                self.parent = parent
                 self.match = match
                 self.start = match.starts(group_name)[rep_index]
                 self.end = match.ends(group_name)[rep_index]
@@ -230,6 +229,7 @@ class Engine:
                 self.length = self.end - self.start
                 self.key = regex.sub(r"_\d+$", r"", self.name)
                 self.rep_index = rep_index
+                self.__parent = None
 
             def groups(self, group_query=None, root=False):
                 def is_next(g1, g2):
@@ -250,7 +250,7 @@ class Engine:
                                     for j, (start, end) in enumerate(self.match.spans(group_i)):
                                         if self.start <= start and end <= self.end:
                                             groups.append(
-                                                self.__class__(self.match, group_i, self.root, rep_index=j, parent=self)
+                                                self.__class__(self.match, group_i, self.root, rep_index=j)
                                             )
                             except IndexError:
                                 break
@@ -296,6 +296,18 @@ class Engine:
             @property
             def json(self):
                 return json.dumps(self.serialize(), indent=2)
+
+            @property
+            def parent(self):
+                if self.__parent:
+                    return self.__parent
+                for g in reversed(self.root.groups()):
+                    if g.name == self.name:
+                        continue
+                    if g.start <= self.start and self.end <= g.end:
+                        self.__parent = g
+                        return g
+                return self.root
 
             def reps(self):
                 if len(self.match.starts(self.name)) > 1:
