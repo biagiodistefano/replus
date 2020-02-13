@@ -217,8 +217,9 @@ class Engine:
             return f"<[Match {self.type}] span{self.span}: {self.value}>"
 
         class Group:
-            def __init__(self, match, group_name, root, rep_index=0):
+            def __init__(self, match, group_name, root, rep_index=0, parent=None):
                 self.root = root
+                self.parent = parent
                 self.match = match
                 self.start = match.starts(group_name)[rep_index]
                 self.end = match.ends(group_name)[rep_index]
@@ -248,7 +249,9 @@ class Engine:
                                 if g is not None and is_next(group_i, self.name):  # returning just its children
                                     for j, (start, end) in enumerate(self.match.spans(group_i)):
                                         if self.start <= start and end <= self.end:
-                                            groups.append(self.__class__(self.match, group_i, self.root, rep_index=j))
+                                            groups.append(
+                                                self.__class__(self.match, group_i, self.root, rep_index=j, parent=self)
+                                            )
                             except IndexError:
                                 break
                         if group_query is None:
@@ -260,7 +263,7 @@ class Engine:
                 return groups
 
             def group(self, group_name):
-                groups = self.groups(group_name)
+                groups = self.groups(group_query=group_name)
                 if len(groups):
                     return groups[0]
                 else:
