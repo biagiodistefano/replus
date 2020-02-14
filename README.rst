@@ -128,6 +128,7 @@ Group objects have the following attributes:
 - ``starts``: the beginnings of the match/group relative to the input string
 - ``ends``: the ends of the group relative to the input string
 - ``offsets``: ``[{"start": start, "end": end}, ...]``
+- ``parent``: The parent group object
 
 Both Match and Group objects can be serialized in dicts with the ``serialize()`` method and
 to a json string with the ``json`` attribute
