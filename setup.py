@@ -40,7 +40,7 @@ def find_version(*file_paths):
 setup(
     name='replus',
     version=find_version("replus", "__init__.py"),
-    description="A wrapper for Python's re library for advanced regex pattern management",
+    description="A wrapper for the regex library for advanced pattern management",
     long_description=read('README.rst'),
     classifiers=[
     ],
