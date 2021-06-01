@@ -1,14 +1,15 @@
 import json
-import regex
 from collections import Counter
 from collections import defaultdict
+
+import regex
 
 from .helpers import FLAG_MAP
 from .helpers import load_models
 
 
 class Engine:
-    group_pattern = r"{{((?P<special>#|\?[:>!=]|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder
+    GROUP_PATTERN = r"{{((?P<special>#|\?[:>!=]|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"
 
     def __init__(self, model: str, *flags, ws_noise: str = None):
 
@@ -65,7 +66,7 @@ class Engine:
                     raise Exception(e, f"Fatal error building patterns in file '{key}.json'")
 
     def __build_pattern(self, pattern, template):
-        for group_match in regex.finditer(self.group_pattern, pattern):
+        for group_match in regex.finditer(self.GROUP_PATTERN, pattern):
             return self.__build_pattern(self.__build_group(group_match, pattern, template), template)
         return pattern
 
@@ -95,7 +96,7 @@ class Engine:
                     )
                 else:
                     new_pattern = pattern.replace(
-                        f"{{{{{special+group_key}}}}}",
+                        f"{{{{{special + group_key}}}}}",
                         f"({special}{self.__build_alts(alts)})",
                         1
                     )

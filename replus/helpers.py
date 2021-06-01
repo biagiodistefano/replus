@@ -1,5 +1,6 @@
 import json
 import os
+
 import regex
 
 FLAG_MAP = {
@@ -36,13 +37,13 @@ def load_models(models_dir):
     return patterns_src, patterns_all
 
 
-def snake_case_toCamelCase(string):
+def snake_case_to_camel_case(string):
     words = string.split("_")
     if len(words) == 1:
         return string.lower()
     return "".join([words[0].lower()] + [word.title() for word in words[1:]])
 
 
-def camelCase_to_snake_case(string):
+def camel_case_to_snake_case(string):
     s1 = regex.sub(r'(\w)([A-Z][a-z]+)', r'\1_\2', string)
     return regex.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
