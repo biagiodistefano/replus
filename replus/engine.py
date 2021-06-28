@@ -31,7 +31,7 @@ class Engine:
         else:
             self.patterns = [(k, regex.compile(p, _flags), t) for k, p, t in self.patterns]
 
-    def parse(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
+    def parse(self, string: str, *filters, exclude: list = None, allow_overlap: bool = False):
         """Return a list of Match objects
         :param string: The string to parse
         :param filters: one or more pattern types to parse; if none is provided, all will be used
@@ -40,8 +40,14 @@ class Engine:
         :return: A list of Match objects
         """
         matches = []
+        filters = set(filters)
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
         for k, pattern, template in self.patterns:
-            if filters and k not in filters or (k in exclude):
+            if (len(filters) and k not in filters) or (k in exclude):
+                print(k)
                 continue
             for m in regex.finditer(pattern, string):
                 match = self.Match(k, m, self.all_groups[template], pattern)
