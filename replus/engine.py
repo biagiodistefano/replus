@@ -47,7 +47,6 @@ class Engine:
             exclude = set(exclude)
         for k, pattern, template in self.patterns:
             if (len(filters) and k not in filters) or (k in exclude):
-                print(k)
                 continue
             for m in regex.finditer(pattern, string):
                 match = self.Match(k, m, self.all_groups[template], pattern)
