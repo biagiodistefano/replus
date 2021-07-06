@@ -1,6 +1,8 @@
 import json
 from collections import Counter
 from collections import defaultdict
+import multiprocessing as mp
+from functools import partial
 
 import regex
 
@@ -56,8 +58,43 @@ class Engine:
         matches.sort(key=lambda x: x.start)
         return matches
 
+    def parse_mp(self, string: str, *filters, exclude: list = None, allow_overlap: bool = False, cpu: int = None):
+        """
+        Same as parse, but with multiprocessing
+        """
+        def _partial_parse(_string, _pattern_tuple):
+            _matches = []
+            _k, _pattern, _template = _pattern_tuple
+            for m in regex.finditer(_pattern, string):
+                match = self.Match(_k, m, self.all_groups[_template], _pattern)
+                _matches.append(match)
+            return _matches
+        matches = []
+        filters = set(filters)
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
+        patterns = [(k, pattern, template)
+                    for k, pattern, template in self.patterns
+                    if (len(filters) and k not in filters) or (k in exclude)]
+        parse = partial(func=_partial_parse, _string=string)
+        cpu = mp.cpu_count() if cpu is None else cpu
+        with mp.Pool(cpu) as pool:
+            for _mm in pool.imap_unordered(parse, patterns):
+                matches.extend(_mm)
+        if not allow_overlap:
+            return self.purge_overlaps(matches)
+        matches.sort(key=lambda x: x.start)
+        return matches
+
     def search(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False):
         for m in self.parse(string, *filters, exclude=exclude, allow_overlap=allow_overlap):
+            return m
+        return None
+
+    def search_mp(self, string: str, *filters, exclude: list = [], allow_overlap: bool = False, cpu: int = None):
+        for m in self.parse_mp(string, *filters, exclude=exclude, allow_overlap=allow_overlap):
             return m
         return None
 
@@ -92,7 +129,7 @@ class Engine:
             else:
                 if special == "#":
                     back_reference_index = int(group_match.group("index")) if group_match.group("index") else 1
-                    assert group_count >= back_reference_index, f"Attempting to reference unexisting group: " \
+                    assert group_count >= back_reference_index, f"Attempting to reference non-existing group: " \
                                                                 f"{group_count - back_reference_index}"
                     new_pattern = pattern.replace(
                         f"{{{{{group_match.group(1)}}}}}",
