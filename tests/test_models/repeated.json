@@ -14,7 +14,7 @@
     "foo",
     "bar"
   ],
-  "patterns": [
+  "$PATTERNS": [
     "{{foobar}} ({{numyear}} ?)+"
   ]
 }

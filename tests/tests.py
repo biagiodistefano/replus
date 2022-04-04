@@ -1,12 +1,14 @@
-import os
 import unittest
+from pathlib import Path
 
-from replus import Engine
+import regex
+from replus import Replus
 
-__HERE__ = os.path.dirname(os.path.abspath(__file__))
 
-test_models_path = os.path.join(__HERE__, "test_models")
-engine = Engine(test_models_path)
+HERE = Path(__file__).parent.absolute()
+
+test_models_path = HERE / "test_models"
+engine = Replus(test_models_path)
 
 
 class TestEngine(unittest.TestCase):
@@ -25,10 +27,10 @@ class TestEngine(unittest.TestCase):
             self.assertEqual(p, expected[i])
 
     def test_flags(self):
-        engine_i = Engine(test_models_path, *"i")
+        engine_i = Replus(test_models_path, flags=regex.IGNORECASE)
         matches = engine_i.parse("Today it's January 1st 1970")
         self.assertEqual(len(matches), 1)
-        engine_ii = Engine(test_models_path)
+        engine_ii = Replus(test_models_path)
         matches = engine_ii.parse("Today it's January 1st 1970")
         self.assertEqual(len(matches), 0)
 
