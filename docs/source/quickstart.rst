@@ -1,11 +1,4 @@
-======
-Replus
-======
-
-A wrapper for the ``regex`` library for advanced pattern management.
-
-- Checkout the `Full documentation <https://replus.biagiodistefano.io/>`_.
-
+==========
 Quickstart
 ==========
 
@@ -16,7 +9,11 @@ Installation
 
 or clone this repo
 
-``git clone git@github.com:biagiodistefano/replus.git``
+``git clone https://github.com/biagiodistefano/replus.git``
+
+cd to the directory
+
+``cd replus``
 
 and then run
 
@@ -79,19 +76,19 @@ It is possible to query as follows:
 
         date = match.group('date')
         print(date)
-        # <[Group date_0] span(19, 29): 2012-12-10>
+        # <[Group date_0] span(19, 29) @0: 2012-12-10>
 
         day = date.group('day')
         print(day)
-        # <[Group day_1] span(27, 29): 10>
+        # <[Group day_1] span(27, 29) @0: 10>
 
         month = date.group('month')
         print(month)
-        # <[Group month_1] span(24, 26): 12>
+        # <[Group month_1] span(24, 26) @0: 12>
 
         year = date.group('year')
         print(year)
-        # [Group year_1] span(19, 23): 2012>
+        # [Group year_1] span(19, 23) @0: 2012>
 
 Filtering
 ---------
@@ -110,14 +107,16 @@ will have type ``date``
 Extra features
 ---------------
 
-There are two useful secondary features:
+There are four useful secondary features:
 
--  ``non-capturing groups``: these are specified by using the "?:" prefix
-   in the group name or key
--  ``atomic groups``: these are specified by using the "?>" prefix
-   in the group name or key
+-  ``non-capturing groups``: these are declared by using the ``?:`` prefix
+    in the group name or key. Beware: can cause con
+-  ``atomic groups``: these are declared by using the ``?>`` prefix
+    in the group name or key
+-  ``group inline modifiers``: these are declared by using the syntax ``?i:``.
+    Beware: only one modifier at a time is supported at the moment.
 -  ``dynamic backreferences``: use ``#`` to reference a previous group
-   and ``@<n>`` to specify how many groups behind
+    and ``@<n>`` to specify how many groups behind
 
 template:
 
@@ -138,7 +137,7 @@ template:
        "eggs": [
          "eggs"
        ],
-      "patterns": [
+      "$PATTERNS": [
         "This is an unnamed number group: {{number}}.",
         "I can match {{abg}} and {{abg}}, and then re-match the last {{#abg}} or the second last {{#abg@2}}",
         "Here is some {{?:spam}} and some {{?>eggs}}"

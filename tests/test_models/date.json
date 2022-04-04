@@ -29,7 +29,7 @@
     "{{day}}/{{month}}/{{year}}",
     "{{month_name}} {{day}}(rd|st|th)? {{year}}"
   ],
-  "patterns": [
+  "$PATTERNS": [
     "{{date}}"
   ]
 }
