@@ -7,7 +7,7 @@
 
     A library for managing regex in a template fashion
 
-    :copyright: (c) 2019 by Biagio Distefano.
+    :copyright: (c) 2022 by Biagio Distefano.
     :license: see LICENSE for more details.
 """
 
@@ -40,20 +40,20 @@ def find_version(*file_paths):
 setup(
     name='replus',
     version=find_version("replus", "__init__.py"),
-    description="A wrapper for Python's re library for advanced regex pattern management",
+    description="A wrapper for the regex library for advanced regex pattern management",
     long_description=read('README.rst'),
     classifiers=[
     ],
     author='Biagio Distefano',
-    author_email='biagiodistefano92@gmail.com',
-    url='https://github.com/raptored01/replus',
+    author_email='me@biagiodistefano.io.com',
+    url='https://github.com/biagiodistefano/replus',
     packages=[
         'replus'
     ],
     platforms='any',
     license='LICENSE',
     install_requires=[
-        'regex>=2019.8.19'
+        'regex==2022.3.15'
     ],
     test_suite='nose.collector',
     tests_require=['nose'],
