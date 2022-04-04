@@ -2,7 +2,9 @@
 Replus
 ======
 
-A wrapper for the ``regex`` library for advanced pattern management
+A wrapper for the ``regex`` library for advanced pattern management.
+
+- Checkout the `Full documentation <https://replus.biagiodistefano.io/>`_.
 
 Quickstart
 ==========

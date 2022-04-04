@@ -9,7 +9,11 @@ Installation
 
 or clone this repo
 
-``git clone git@github.com:biagiodistefano/replus.git``
+``git clone https://github.com/biagiodistefano/replus.git``
+
+cd to the directory
+
+``cd replus``
 
 and then run
 
