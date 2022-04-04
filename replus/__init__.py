@@ -12,7 +12,7 @@
 """
 
 __title__ = 'replus'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __author__ = 'Biagio Distefano'
 
 
@@ -70,7 +70,7 @@ class Replus:
         else:
             self.patterns = [(k, regex.compile(p, flags=flags), t) for k, p, t in self.patterns]
 
-    def parse(self, string: str, *filters, exclude: List = None, overlap: bool = False):
+    def parse(self, string: str, *filters, exclude: List = None, overlap: bool = False) -> List["Match"]:
         """
         Returns a list of Match objects
 
