@@ -1,7 +1,11 @@
-replus
+======
+Replus
 ======
 
 A wrapper for the ``regex`` library for advanced pattern management
+
+Quickstart
+==========
 
 Installation
 ------------
@@ -10,20 +14,20 @@ Installation
 
 or clone this repo
 
-``git@github.com:raptored01/replus.git``
+``git clone git@github.com:biagiodistefano/replus.git``
 
 and then run
 
 ``python setup.py install``
 
-Basic usage
------------
+Template creation
+-----------------
 
 The Engine loads Regular Expression **pattern templates** written in
 \*.json files from the provided directory, builds and compiles them in
 the following fashion:
 
-example of template ``models/dates.json``:
+example of template ``patterns/date.json``:
 
 ::
 
@@ -44,7 +48,7 @@ example of template ``models/dates.json``:
         "{{day}}/{{month}}/{{year}}",
         "{{year}}-{{month}}-{{day}}"
       ],
-      "patterns": [
+      "$PATTERNS": [
         "{{date}}"
       ]
     }
@@ -53,7 +57,8 @@ will result in the following regex:
 
 ``(?P<date_0>(?P<day_0>[12][0-9]|0?[1-9]|3[01])/(?P<month_0>0?[1-9]|1[012])/(?P<year_0>\d{4})|(?P<year_1>\d{4})-(?P<month_1>0?[1-9]|1[012])-(?P<day_1>[12][0-9]|0?[1-9]|3[01]))``
 
-You can put more patterns into ``patterns``, as it will become a ``list`` that will be looped over.
+
+Only the patterns under ``$PATTERNS`` will be matched against at runtime.
 
 Querying
 --------
@@ -62,9 +67,9 @@ It is possible to query as follows:
 
 ::
 
-    from replus import Engine
+    from replus import Replus
 
-    engine = Engine('models')
+    engine = Replus('patterns')
 
     for match in engine.parse("Look at this date: 2012-20-10"):
         print(match)
@@ -89,7 +94,9 @@ It is possible to query as follows:
 Filtering
 ---------
 
-it is possible to filter regexes by type, being the type given by the json's filename
+it is possible to filter regexes by type, being the type given by the json's filename's stem.
+E.g., in the above example, results matched by the patterns under ``patterns/date.json``'s ``$PATTERNS``
+will have type ``date``
 
 ::
 
@@ -98,42 +105,8 @@ it is possible to filter regexes by type, being the type given by the json's fil
         # do stuff
 
 
-
-Match and Group objects
------------------------
-
-Match objects have the following attributes:
-
-- ``type``: the type of match (e.g. "dates");
-- ``match``: the re.match object;
-- ``re``: the regex pattern;
-- ``all_group_names``: the name of all the children groups;
-
-Both Match and Group objects have the following attributes:
-
-- ``value``: the string value of the match/group
-- ``start``: the beginning of the match/group relative to the input string
-- ``end``: the end of the group relative to the input string
-- ``span``: ``(start, end)`` the span of the match/group object relative to the input string
-- ``offset``: ``{"start": start, "end": end}`` similar to ``span``
-- ``length``: end-start
-- ``first()``: get the first matching group
-- ``last()``: get the last matching group
-
-Group objects have the following attributes:
-
-- ``name``: the actual group name (e.g. date\_1);
-- ``key``: the group key (e.g. date);
-- ``spans``: ``[(start, end), ...]`` the spans of the repeated matches relative to the input string
-- ``starts``: the beginnings of the match/group relative to the input string
-- ``ends``: the ends of the group relative to the input string
-- ``offsets``: ``[{"start": start, "end": end}, ...]``
-
-Both Match and Group objects can be serialized in dicts with the ``serialize()`` method and
-to a json string with the ``json`` attribute
-
-Secondary features
-~~~~~~~~~~~~~~~~~~
+Extra features
+---------------
 
 There are two useful secondary features:
 
@@ -180,8 +153,3 @@ It will generate the following regexs:
 
 **N.B.**: in order to obtain an escape char, such as ``\d``, in the
 pattern's model it **must** be double escaped: ``\\d``
-
-Current limitations
-~~~~~~~~~~~~~~~~~~~
-
-None known
