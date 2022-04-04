@@ -108,3 +108,4 @@ venv.bak/
 .DS_Store
 .vscode/
 junk/
+docs/
