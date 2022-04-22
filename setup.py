@@ -14,10 +14,11 @@
 import codecs
 import os
 import re
+from pathlib import Path
 
 from setuptools import setup
 
-here = os.path.abspath(os.path.dirname(__file__))
+here = Path(__file__).resolve().parent
 
 
 def read(filepath):
