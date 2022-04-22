@@ -19,7 +19,7 @@ __author__ = 'Biagio Distefano'
 import json
 import os
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 from collections import Counter
 from collections import defaultdict
 
@@ -42,12 +42,12 @@ class Replus:
 
     group_pattern = r"{{((?P<special>#|\?[:>!=]|\?[aimsxl]:|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder
 
-    def __init__(self, patterns_dir: os.PathLike, whitespace_noise: str = None, flags: int = regex.V0):
+    def __init__(self, patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]], whitespace_noise: str = None, flags: int = regex.V0):
         """
         Instanciates the Replus engine
 
-        :param patterns_dir: the path to the directory where the \*.json pattern templates are stored
-        :type patterns_dir: os.PathLike
+        :param patterns_dir_or_dict: the path to the directory where the \*.json pattern templates are stored or a dict of dicts with the patterns
+        :type patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]]
 
         :param whitespace_noise: a pattern to replace white space in the template
         :type whitespace_noise: str, defaults to None
@@ -61,7 +61,7 @@ class Replus:
         self.patterns_src = {}
         self.patterns_all = {}
         self.all_groups = defaultdict(list)
-        self.patterns_src, self.patterns_all = self._load_models(patterns_dir)
+        self.patterns_src, self.patterns_all = self._load_models(patterns_dir_or_dict)
         self._build_patterns()
 
         if whitespace_noise is not None:
@@ -103,7 +103,7 @@ class Replus:
         matches.sort(key=lambda x: x._start)
         return matches
 
-    def search(self, string: str, *filters, exclude: list = None, allow_overlap: bool = False) -> "Match":
+    def search(self, string: str, *filters: str, exclude: list = None, allow_overlap: bool = False) -> "Match":
         """
         Returns a single Match object
 
@@ -219,28 +219,40 @@ class Replus:
         return purged
 
     @staticmethod
-    def _load_models(patterns_dir: os.PathLike) -> Tuple[dict]:
-        patterns_dir = Path(patterns_dir).absolute()
+    def _load_models(patterns: Union[os.PathLike, Dict[str, Dict]]) -> Tuple[dict]:
+        def _iter_from_path(patterns_path: os.PathLike):
+            patterns_path = Path(patterns_path).absolute()
+            for pattern_filepath in patterns_path.iterdir():
+                if not (pattern_filepath.is_file() and pattern_filepath.suffix == ".json"):
+                    continue
+                patterns_name = pattern_filepath.stem
+                with pattern_filepath.open("r") as f:
+                    config_obj = json.load(f)
+                yield pattern_filepath, patterns_name, config_obj
+        def _iter_from_dict(patterns_dict: Dict[str, Dict]):
+            for patterns_name, config_obj in patterns_dict.items():
+                yield patterns_name, patterns_name, config_obj
+        if isinstance(patterns, (str, os.PathLike)):
+            patterns_iterator = _iter_from_path(patterns)
+        elif isinstance(patterns, dict):
+            patterns_iterator = _iter_from_dict(patterns)
+        else:
+            raise TypeError(f"'patterns' must be of type str, os.PathLike or dict, got {type(patterns)} instead")
         patterns_src = {}
         patterns_all = {}
         loaded = {}
-        for pattern_filepath in patterns_dir.iterdir():
-            if not (pattern_filepath.is_file() and pattern_filepath.suffix == ".json"):
-                continue
-            patterns_name = pattern_filepath.stem
-            with pattern_filepath.open("r") as f:
-                config_obj = json.load(f)
-                if run_patterns := config_obj.pop("$PATTERNS", None):
-                    patterns_all[patterns_name] = run_patterns
-                for k in config_obj:
-                    if k in loaded:
-                        raise KeyError(
-                            f"Duplicated pattern name \"{k}\" in {str(pattern_filepath)} "
-                            f"already loaded from {loaded[k]}"
-                        )
-                    else:
-                        loaded[k] = str(pattern_filepath)
-                patterns_src.update(config_obj)
+        for pattern_filepath, patterns_name, config_obj in patterns_iterator:
+            if run_patterns := config_obj.pop("$PATTERNS", None):
+                patterns_all[patterns_name] = run_patterns
+            for k in config_obj:
+                if k in loaded:
+                    raise KeyError(
+                        f"Duplicated pattern name \"{k}\" in {str(pattern_filepath)} "
+                        f"already loaded from {loaded[k]}"
+                    )
+                else:
+                    loaded[k] = str(pattern_filepath)
+            patterns_src.update(config_obj)
         return patterns_src, patterns_all
 
 

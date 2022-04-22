@@ -3,12 +3,16 @@ from pathlib import Path
 
 import regex
 from replus import Replus
+from test_models.date import date
+from test_models.repeated import repeated
+from test_models.tests import tests
 
 
 HERE = Path(__file__).parent.absolute()
 
 test_models_path = HERE / "test_models"
-engine = Replus(test_models_path)
+# engine = Replus(test_models_path)
+engine = Replus(dict(date=date, repeated=repeated, tests=tests))
 
 
 class TestEngine(unittest.TestCase):
