@@ -12,14 +12,14 @@
 """
 
 __title__ = 'replus'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 __author__ = 'Biagio Distefano'
 
 
 import json
 import os
 from pathlib import Path
-from typing import List, Tuple, Union, Dict
+from typing import Any, List, Tuple, Union, Dict, Optional
 from collections import Counter
 from collections import defaultdict
 
@@ -42,7 +42,7 @@ class Replus:
 
     group_pattern = r"{{((?P<special>#|\?[:>!=]|\?[aimsxl]:|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder
 
-    def __init__(self, patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]], whitespace_noise: str = None, flags: int = regex.V0):
+    def __init__(self, patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]], whitespace_noise: Optional[str] = None, flags: Optional[int] = regex.V0):
         """
         Instanciates the Replus engine
 
@@ -70,7 +70,21 @@ class Replus:
         else:
             self.patterns = [(k, regex.compile(p, flags=flags), t) for k, p, t in self.patterns]
 
-    def parse(self, string: str, *filters, exclude: List = None, overlap: bool = False) -> List["Match"]:
+    def parse(
+        self,
+        string: str,
+        filters: Optional[List[str]] = None,
+        exclude: Optional[List[str]] = None,
+        pos: Optional[int] = None,
+        endpos: Optional[int] = None,
+        flags: Optional[int] = 0,
+        overlapped: Optional[bool] = False,
+        partial: Optional[bool] = False,
+        concurrent: Optional[bool] = None,
+        timeout: Optional[float] = None,
+        ignore_unused: Optional[bool] = False,
+        **kwargs: Any
+    ) -> List["Match"]:
         """
         Returns a list of Match objects
 
@@ -78,32 +92,82 @@ class Replus:
         :type string: str
 
         :param filters: one or more pattern types to parse; if none is provided, all will be used
-        :type filters: Tuple[str]
+        :type filters: List[str]
 
         :param exclude: a list of pattern types to exclude
         :type exclude: List[str], defaults to None
 
-        :param overlap: if True will allow overlapping matches
-        :type overlap: bool, defaults to False
+        :param pos: starting position of the matching
+        :type pos: int, defaults to None
+
+        :param endpos: ending position of the matching
+        :type endpos: int, defaults to None
+
+        :param flags: flags to use while matching
+        :type flags: int, defaults to 0
+
+        :param overlapped: if True will allow overlapping matches
+        :type overlapped: bool, defaults to False
+
+        :param partial: if True will allow partial matches
+        :type partial: bool, defaults to False
+
+        :param concurrent: if True will run concurrently
+        :type concurrent: bool, defaults to None
+
+        :param timeout: timeout for matching
+        :type partial: float, defaults to None
+
+        :param ignore_unused: ignore unused
+        :type ignore_unused: bool, defaults to False
 
         :return: a list of Match objects
         :rtype: List[Match]
         """
 
-        exclude = exclude or []
+        if filters is None:
+            filters = []
+        if exclude is None:
+            exclude = []
         matches = []
         for k, pattern, template in self.patterns:
             if filters and k not in filters or (k in exclude):
                 continue
-            for m in regex.finditer(pattern, string):
+            for m in regex.finditer(
+                pattern=pattern,
+                string=string,
+                flags=flags,
+                pos=pos,
+                endpos=endpos,
+                overlapped=overlapped,
+                partial=partial,
+                concurrent=concurrent,
+                timeout=timeout,
+                ignore_unused=ignore_unused,
+                **kwargs
+            ):
                 match = Match(k, m, self.all_groups[template], pattern)
                 matches.append(match)
-        if not overlap:
+        if not overlapped:
             return self.purge_overlaps(matches)
         matches.sort(key=lambda x: x._start)
         return matches
 
-    def search(self, string: str, *filters: str, exclude: list = None, allow_overlap: bool = False) -> "Match":
+    def search(
+        self,
+        string: str,
+        filters: Optional[List[str]] = None,
+        exclude: Optional[List[str]] = None,
+        pos: Optional[int] = None,
+        endpos: Optional[int] = None,
+        flags: Optional[int] = 0,
+        overlapped: Optional[bool] = False,
+        partial: Optional[bool] = False,
+        concurrent: Optional[bool] = None,
+        timeout: Optional[float] = None,
+        ignore_unused: Optional[bool] = False,
+        **kwargs: Any
+    ) -> "Match":
         """
         Returns a single Match object
 
@@ -116,14 +180,48 @@ class Replus:
         :param exclude: a list of pattern types to exclude
         :type exclude: List[str], defaults to None
 
-        :param overlap: if True will allow overlapping matches
-        :type overlap: bool, defaults to False
+        :param pos: starting position of the matching
+        :type pos: int, defaults to None
+
+        :param endpos: ending position of the matching
+        :type endpos: int, defaults to None
+
+        :param flags: flags to use while matching
+        :type flags: int, defaults to 0
+
+        :param overlapped: if True will allow overlapping matches
+        :type overlapped: bool, defaults to False
+
+        :param partial: if True will allow partial matches
+        :type partial: bool, defaults to False
+
+        :param concurrent: if True will run concurrently
+        :type concurrent: bool, defaults to None
+
+        :param timeout: timeout for matching
+        :type partial: float, defaults to None
+
+        :param ignore_unused: ignore unused
+        :type ignore_unused: bool, defaults to False
 
         :return: a Match object
         :rtype: Match
         """
 
-        for m in self.parse(string, *filters, exclude=exclude, overlap=allow_overlap):
+        for m in self.parse(
+            string=string,
+            filters=filters,
+            exclude=exclude,
+            flags=flags,
+            pos=pos,
+            endpos=endpos,
+            overlapped=overlapped,
+            partial=partial,
+            concurrent=concurrent,
+            timeout=timeout,
+            ignore_unused=ignore_unused,
+            **kwargs
+        ):
             return m
         return None
 
@@ -263,6 +361,7 @@ class Match:
 
     :ivar type: the type of the match, corresponding to the stem of the file of the pattern's template
     :ivar match: a regex.regex.Match object
+    :ivar partial: if it's a partial match
     :ivar value: the string value of the match
     :ivar offset: the offset of the match ``{"start": int, "end": int}``
     :ivar pattern: the string representation of the pattern that matched
@@ -292,6 +391,7 @@ class Match:
 
         self.type = match_type
         self.match = match
+        self.partial = match.partial
         self.value = match.group()
         self.offset = {"start": self.start(), "end": self.end()}
         self.pattern = pattern.pattern

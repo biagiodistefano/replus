@@ -51,7 +51,7 @@ class TestEngine(unittest.TestCase):
         self.assertEqual(year.value, "1970")
 
     def test_first(self):
-        date_match = engine.search("Today it's january 1st 1970", "date")
+        date_match = engine.search("Today it's january 1st 1970", filters=["date"])
         first = date_match.first()
         self.assertTrue(first is not None)
 
@@ -59,6 +59,10 @@ class TestEngine(unittest.TestCase):
         repeat_match = engine.search("foobar 34 of 1997 15 of 1988 45 of 1975")
         self.assertEqual(len(repeat_match.group("numyear").reps()), 3)
 
+    def test_partial(self):
+        partial_match = engine.search("march 3rd", partial=True)
+        self.assertIsNotNone(partial_match, "Did not match")
+        self.assertTrue(partial_match.partial)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

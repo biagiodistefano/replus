@@ -22,7 +22,7 @@ copyright = '2022, Biagio Distefano'
 author = 'Biagio Distefano'
 
 # The full version, including alpha/beta/rc tags
-version = '0.2.1'
+version = '0.2.3'
 release = version
 
 
