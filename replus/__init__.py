@@ -12,7 +12,7 @@
 """
 
 __title__ = 'replus'
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 __author__ = 'Biagio Distefano'
 
 
@@ -401,7 +401,7 @@ class Match:
         self._end = self.end()
         self._span = self.span()
 
-    def start(self, group_name: str = None, rep_index: int = 0) -> int:
+    def start(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> int:
         """
         Returns the start character index of self or of Group with group_name
         
@@ -421,7 +421,7 @@ class Match:
             raise NoSuchGroup
         return self.match.start()
     
-    def end(self, group_name: str = None, rep_index: int = 0) -> int:
+    def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> int:
         """
         Returns the end character index of self or of Group with group_name
         
@@ -441,7 +441,7 @@ class Match:
             raise NoSuchGroup
         return self.match.end()
 
-    def span(self, group_name: str = None, rep_index: int = 0) -> Tuple[int]:
+    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> Tuple[int]:
         """
         Returns the span of self or of Group with group_name
 
@@ -603,14 +603,14 @@ class Group:
         self.name = group_name
         self.key = regex.sub(r"_\d+$", r"", self.name)
         self.value = match.captures(group_name)[rep_index]
+        self.rep_index = rep_index
         self.offset = {"start": self.start(), "end": self.end()}
         self.length = self.end() - self.start()
-        self.rep_index = rep_index
         self._start = self.start()
         self._end = self.end()
         self._span = self.span()
 
-    def start(self, group_name: str = None, rep_index: int = 0) -> int:
+    def start(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
         """
         Returns the start character index of self or of Group with group_name
         
@@ -624,13 +624,16 @@ class Group:
         :rtype: int
         """
 
+        if rep_index is None:
+            rep_index = self.rep_index
+
         if group_name is not None:
             if group := self.group(group_name):
                 return group.start(rep_index=rep_index)
             raise NoSuchGroup
         return self.match.starts(self.name)[rep_index]
     
-    def end(self, group_name: str = None, rep_index: int = 0) -> int:
+    def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
         """
         Returns the end character index of self or of Group with group_name
         
@@ -644,13 +647,16 @@ class Group:
         :rtype: int
         """
 
+        if rep_index is None:
+            rep_index = self.rep_index
+
         if group_name is not None:
             if group := self.group(group_name):
                 return group.end(rep_index=rep_index)
             raise NoSuchGroup
         return self.match.ends(self.name)[rep_index]
 
-    def span(self, group_name: str = None, rep_index: int = 0) -> Tuple[int]:
+    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> Tuple[int]:
         """
         Returns the span of self or of Group with group_name
 
@@ -663,6 +669,9 @@ class Group:
         :return: the span of the Match
         :rtype: Tuple[int]
         """
+
+        if rep_index is None:
+            rep_index = self.rep_index
 
         if group_name is not None:
             if group := self.group(group_name):
