@@ -23,9 +23,7 @@ jobs:
         run: pip install poetry && poetry install
 
       - name: Run tests and collect coverage
-        run: |
-          coverage run -m pytest tests
-          coverage xml
+        run: pytest --cov=. tests/ && coverage xml
         env:
           COVERAGE_FILE: ${{ github.workspace }}/coverage.xml
 
