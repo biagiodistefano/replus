@@ -1,0 +1,36 @@
+name: Code Coverage
+
+on:
+  push:
+    branches:
+      - master  # Adjust to your main branch
+      - testing/badges
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install poetry && poetry install
+
+      - name: Run tests and collect coverage
+        run: |
+          coverage run -m pytest tests
+          coverage xml
+        env:
+          COVERAGE_FILE: ${{ github.workspace }}/coverage.xml
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: ${{ github.workspace }}/coverage.xml
+          fail_ci_if_error: true
