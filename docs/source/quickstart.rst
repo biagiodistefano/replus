@@ -99,7 +99,7 @@ will have type ``date``
 
 ::
 
-    filters = ["dates", "cities"]
+    filters = ["date", "cities"]
     for match in engine.parse(my_string, *filters):
         # do stuff
 

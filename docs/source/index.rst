@@ -1,4 +1,4 @@
-Welcome to Replus's documentation!
+Welcome to Replus' documentation!
 ==================================
 
 Replus is a wrapper for the ``regex`` library for advanced regex pattern management
