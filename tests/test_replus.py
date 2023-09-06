@@ -14,11 +14,12 @@ HERE = Path(__file__).parent.absolute()
 engine = Replus(dict(date=date, repeated=repeated, tests=tests))
 
 
-def test_parser_regex():
+def test_parser_regex() -> None:
     patterns = [p.pattern for k, p, t in engine.patterns if k == "tests"]
     expected = [
         r"This is an unnamed number group: (?:\d).",
-        r"I can match (?P<abg_0>alpha|beta|gamma) and (?P<abg_1>alpha|beta|gamma), and then re-match the last (?P=abg_1) or the second last (?P=abg_0)",
+        r"I can match (?P<abg_0>alpha|beta|gamma) and "
+        r"(?P<abg_1>alpha|beta|gamma), and then re-match the last (?P=abg_1) or the second last (?P=abg_0)",
         # noqa: E501
         r"Here is some (?:spam) and some (?>eggs)",
         r"(?<!foo|bar) blah blah, (?!foo|bar) foo foo, (?<=foo|bar) bar bar, (?=foo|bar) yoyo",
@@ -28,7 +29,7 @@ def test_parser_regex():
         assert p == expected[i]
 
 
-def test_flags():
+def test_flags() -> None:
     test_models_path = HERE / "test_models"
     engine_i = Replus(test_models_path, flags=regex.IGNORECASE)
     matches = engine_i.parse("Today it's January 1st 1970")
@@ -38,7 +39,7 @@ def test_flags():
     assert len(matches) == 0
 
 
-def test_match():
+def test_match() -> None:
     matches = engine.parse("Today is january 1st 1970")
     assert len(matches) == 1
     date_ = matches[0]
@@ -51,18 +52,33 @@ def test_match():
     assert year.value == "1970"
 
 
-def test_search_returns_none():
+def test_search_returns_none() -> None:
     date_match = engine.search("Today is january 1st 19xx")
     assert date_match is None
 
 
-def test_first():
+def test_match_with_no_groups() -> None:
+    _engine = Replus(HERE / "test_models")
+    match = _engine.search("Pattern with no groups")
+    assert match.first() is None
+    assert match.last() is None
+
+
+def test_first() -> None:
     date_match = engine.search("Today is january 1st 1970", filters=["date"])
     first = date_match.first()
     assert first is not None
+    assert first.value == "january 1st 1970"
 
 
-def test_start_end():
+def test_last() -> None:
+    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    last = date_match.last()
+    assert last is not None
+    assert last.value == "1970"
+
+
+def test_start_end() -> None:
     date_match = engine.search("Today is january 1st 1970", filters=["date"])
     assert date_match.start() == 9
     assert date_match.start("year") == 21
@@ -70,7 +86,7 @@ def test_start_end():
     assert date_match.end("year") == 25
 
 
-def test_start_end_no_such_group():
+def test_start_end_no_such_group() -> None:
     date_match = engine.search("Today is january 1st 1970", filters=["date"])
     with pytest.raises(exceptions.NoSuchGroup):
         _ = date_match.start("foo")
@@ -78,30 +94,30 @@ def test_start_end_no_such_group():
         _ = date_match.end("foo")
 
 
-def test_span():
+def test_span() -> None:
     date_match = engine.search("Today is january 1st 1970", filters=["date"])
     assert date_match.span() == (9, 25)
     assert date_match.span("year") == (21, 25)
 
 
-def test_span_no_such_group():
+def test_span_no_such_group() -> None:
     date_match = engine.search("Today is january 1st 1970", filters=["date"])
     with pytest.raises(exceptions.NoSuchGroup):
         _ = date_match.span("foo")
 
 
-def test_repeat():
+def test_repeat() -> None:
     repeat_match = engine.search("foobar 34 of 1997 15 of 1988 45 of 1975")
     assert len(repeat_match.group("numyear").reps()) == 3
 
 
-def test_partial():
+def test_partial() -> None:
     partial_match = engine.search("march 3rd", partial=True)
     assert partial_match is not None, "Did not match"
     assert partial_match.partial
 
 
-def test_build_pattern_error():
+def test_build_pattern_error() -> None:
     _patterns = {
         "test": {
             "test": [
@@ -114,7 +130,7 @@ def test_build_pattern_error():
         _ = Replus(_patterns)
 
 
-def test_whitespace_noise():
+def test_whitespace_noise() -> None:
     _patterns = {
         "test": {
             "test": [
@@ -129,14 +145,31 @@ def test_whitespace_noise():
     assert matches[0].value == "This#is#a#test#pattern"
 
 
-def test_json():
+def test_json() -> None:
     matches = engine.parse("Here is some spam and some eggs")
     assert matches[0].json() == '{"type": "tests", "offset": {"start": 0, "end": 31}, "value": "Here is some spam and some eggs", "groups": {}}'  # noqa: E501
     matches = engine.parse("Today is january 1st 1970")
     assert matches[0].json() == '{"type": "date", "offset": {"start": 9, "end": 25}, "value": "january 1st 1970", "groups": {"date": [{"key": "date", "name": "date_0", "offset": {"start": 9, "end": 25}, "value": "january 1st 1970", "groups": {"month_name": [{"key": "month_name", "name": "month_name_0", "offset": {"start": 9, "end": 16}, "value": "january", "groups": {}}], "day": [{"key": "day", "name": "day_1", "offset": {"start": 17, "end": 18}, "value": "1", "groups": {}}], "year": [{"key": "year", "name": "year_1", "offset": {"start": 21, "end": 25}, "value": "1970", "groups": {}}]}}]}}'  # noqa: E501
 
 
-def test_patterns_wrong_type():
-    invalid_models = HERE / "invalid_models"
+def test_patterns_duplicate() -> None:
+    invalid_models = HERE / "invalid_models" / "duplicate"
     with pytest.raises(KeyError):
         _ = Replus(invalid_models)
+
+
+def test_patterns_invalid_special() -> None:
+    invalid_models = HERE / "invalid_models" / "special"
+    with pytest.raises(exceptions.PatternBuildException):
+        _ = Replus(invalid_models)
+
+
+def test_patterns_invalid_group() -> None:
+    invalid_models = HERE / "invalid_models" / "group"
+    with pytest.raises(exceptions.PatternBuildException):
+        _ = Replus(invalid_models)
+
+
+def test_init_wrong_type() -> None:
+    with pytest.raises(TypeError):
+        _ = Replus(1)  # type: ignore

@@ -1,0 +1,5 @@
+{
+  "$PATTERNS": [
+    "This is an invalid group: {{invalid}}."
+  ]
+}

@@ -16,6 +16,7 @@ __version__ = '0.3.0'
 __author__ = 'Biagio Distefano'
 
 
+import abc
 import json
 import os
 from pathlib import Path
@@ -35,7 +36,7 @@ class Replus:
 
     :ivar group_counter: a Counter object to count group name occurance on each template
     :ivar patterns: a list of tuples made of [(key, pattern, template), ...]
-    :ivar patterns_src: a dict containing all of patterns_dir/\*.json combined together, "patterns" excluded
+    :ivar patterns_src: a dict containing all of patterns_dir/*.json combined together, "patterns" excluded
     :ivar patterns_all: all patterns that can be run, e.g. {"dates": [pattern0, pattern1], ...}
     :ivar all_groups: a dict of list with the templates as keys, e.g. {pattern_template_a: [group_0, group_1],
                     pattern_template_b: [group_0, group_1]}
@@ -52,7 +53,7 @@ class Replus:
         Instantiates the Replus engine
 
         :param patterns_dir_or_dict: the path to the directory where the
-            \*.json pattern templates are stored or a dict of dicts with the patterns
+            *.json pattern templates are stored or a dict of dicts with the patterns
         :type patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]]
 
         :param whitespace_noise: a pattern to replace white space in the template
@@ -63,7 +64,7 @@ class Replus:
         """
 
         self.group_counter: Counter = Counter()
-        self.patterns: List[Tuple[str, str, str]] = []
+        self.patterns: List[Tuple[str, regex.Pattern, str]] = []
         self.patterns_src: Dict[str, List[str]] = {}
         self.patterns_all: Dict[str, List[str]] = {}
         self.all_groups: Dict[str, List[str]] = defaultdict(list)
@@ -283,7 +284,7 @@ class Replus:
                     self.group_counter[group_key] += 1
         else:
             if special:
-                raise RepeatedSpecialGroup(f"Repeated special group for {group_key}: '{special}'")
+                raise Exception(f"`{special}{group_key}` does not exist. Template: {template!r}")
             for sk in ["?:", "?>", "?!", "?=", "?<=", "?<!", "?a:", "?i:", "?m:", "?s:", "?x:", "?l:"]:
                 alts = self.patterns_src.get(f"{sk}{group_key}")
                 if alts is not None:
@@ -329,9 +330,9 @@ class Replus:
 
     @staticmethod
     def _load_models(
-            patterns: Union[os.PathLike, Dict[str, Dict[str, List[str]]]]
+            patterns: Union[str, os.PathLike, Dict[str, Dict[str, List[str]]]]
     ) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
-        def _iter_from_path(patterns_path: os.PathLike) -> Generator[Tuple[Path, str, Dict[str, List[str]]], None, None]:  # noqa E501
+        def _iter_from_path(patterns_path: Union[str, os.PathLike]) -> Generator[Tuple[Path, str, Dict[str, List[str]]], None, None]:  # noqa E501
             patterns_path = Path(patterns_path).absolute()
             for pattern_filepath in patterns_path.iterdir():
                 if not (pattern_filepath.is_file() and pattern_filepath.suffix == ".json"):
@@ -369,7 +370,170 @@ class Replus:
         return patterns_src, patterns_all
 
 
-class Match:
+class AbstractMatch(abc.ABC):
+
+    def serialize(self) -> dict:
+        """
+        Returns a dict representation of the Match object structured as follows
+
+        .. code-block::
+
+            o = {
+                "key": self.key,
+                "name": self.name,
+                "offset": self.offset,
+                "value": self.value,
+                "groups": {subgroup_0: [group_object.serialize()]}
+            }
+
+        :return: a dict representation of the Match object
+        :rtype: dict
+        """
+
+        if type(self) is Group:
+            o = {"key": self.key, "name": self.name}  # type: ignore
+        else:
+            o = {"type": self.type}  # type: ignore
+        o.update({
+            "offset": self.offset,  # type: ignore
+            "value": self.value,  # type: ignore
+            "groups": defaultdict(list)
+        })
+        for g in self.groups(root=True):
+            o["groups"][g.key].append(g.serialize())
+        o["groups"] = dict(o["groups"])
+        return o
+
+    @abc.abstractmethod
+    def groups(self, group_query: Optional[str] = None, root: bool = False) -> List["Group"]:
+        """"""
+
+    def start(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
+        """
+        Returns the start character index of self or of Group with group_name
+
+        :param group_name: the name of the group
+        :type group_name: str, defaults to None
+
+        :param rep_index: the repetition index of the group
+        :type rep_index: int, defaults to 0
+
+        :return: the start index of the Match
+        :rtype: int
+        """
+
+        if rep_index is None:
+            rep_index = getattr(self, "rep_index", 0)
+
+        if group_name is not None:
+            if group := self.group(group_name):
+                return group.start(rep_index=rep_index)
+            raise NoSuchGroup(group_name)
+        if type(self) is Group:
+            return self.match.starts(self.name)[rep_index]  # type: ignore
+        return self.match.start()  # type: ignore
+
+    def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
+        """
+        Returns the end character index of self or of Group with group_name
+
+        :param group_name: the name of the group
+        :type group_name: str, defaults to None
+
+        :param rep_index: the repetition index of the group
+        :type rep_index: int, defaults to 0
+
+        :return: the end index of the Match
+        :rtype: int
+        """
+
+        if rep_index is None:
+            rep_index = getattr(self, "rep_index", 0)
+
+        if group_name is not None:
+            if group := self.group(group_name):
+                return group.end(rep_index=rep_index)
+            raise NoSuchGroup(group_name)
+        if type(self) is Group:
+            return self.match.ends(self.name)[rep_index]  # type: ignore
+        return self.match.end()  # type: ignore
+
+    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> Tuple[int, int]:
+        """
+        Returns the span of self or of Group with group_name
+
+        :param group_name: the name of the group
+        :type group_name: str, defaults to None
+
+        :param rep_index: the repetition index of the group
+        :type rep_index: int, defaults to 0
+
+        :return: the span of the Match
+        :rtype: Tuple[int]
+        """
+
+        if rep_index is None:
+            rep_index = getattr(self, "rep_index", 0)
+
+        if group_name is not None:
+            if group := self.group(group_name):
+                return group.span(rep_index=rep_index)
+            raise NoSuchGroup(group_name)
+        if type(self) is Group:
+            return self.match.spans(self.name)[rep_index]  # type: ignore
+        return self.match.span()  # type: ignore
+
+    def group(self, group_name: str) -> Optional["Group"]:
+        """
+        Returns a Group object with the given group_name or None
+
+        :param group_name: the name of the group
+        :type group_name: str
+
+        :return: a Group object
+        :rtype: Optional[Group]
+        """
+
+        for group in self.groups(group_name):
+            return group
+        return None
+
+    def first(self) -> Optional["Group"]:
+        """
+        Returns the first Group object or None
+
+        :return: the first Group object
+        :rtype: Union[Group, None]
+        """
+
+        for group in self.groups():
+            return group
+        return None
+
+    def last(self) -> Optional["Group"]:
+        """
+        Returns the last Group object or None
+
+        :return: the last Group object
+        :rtype: Union[Group, None]
+        """
+
+        for group in reversed(self.groups()):
+            return group
+        return None
+
+    def json(self, *args: Any, **kwargs: Any) -> str:
+        """
+        Returns a json-string of the serialized object
+
+        :return: a json-string of the serialized object
+        :rtype: str
+        """
+
+        return json.dumps(self.serialize(), *args, **kwargs)
+
+
+class Match(AbstractMatch):
 
     """
     A Match object is an abstract and expanded representation of a regex.regex.Match
@@ -422,70 +586,10 @@ class Match:
         self._end = self.end()
         self._span = self.span()
 
-    def start(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> int:
-        """
-        Returns the start character index of self or of Group with group_name
-        
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the start index of the Match
-        :rtype: int
-        """
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.start(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.start()
-    
-    def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> int:
-        """
-        Returns the end character index of self or of Group with group_name
-        
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the end index of the Match
-        :rtype: int
-        """
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.end(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.end()
-
-    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> Tuple[int, int]:
-        """
-        Returns the span of self or of Group with group_name
-
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the span of the Match
-        :rtype: Tuple[int]
-        """
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.span(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.span()
-
     def groups(self, group_query: Optional[str] = None, root: bool = False) -> List["Group"]:
         """
         Returns a list of repeated Group objects that belong to the Match object
-        
+
         :param group_query: the name of the group to find repetitions of
         :type group_query: str, defaults to None
 
@@ -515,92 +619,16 @@ class Match:
                 if group_query is None:
                     break
                 i += 1
+        groups.sort(key=lambda x: x._start)
         if root:
             return Replus.purge_overlaps(groups)  # type: ignore
         return groups
-
-    def group(self, group_name: str) -> Union["Group", None]:
-        """
-        Returns a Group object with the given group_name or None
-
-        :param group_name: the name of the group
-        :type group_name: str
-
-        :return: a Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in self.groups(group_name):
-            return group
-        return None
-
-    def first(self) -> Union["Group", None]:
-        """
-        Returns the first Group object or None
-
-        :return: the first Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in self.groups():
-            return group
-        return None
-
-    def last(self) -> Union["Group", None]:
-        """
-        Returns the last Group object or None
-
-        :return: the last Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in reversed(self.groups()):
-            return group
-        return None
-
-    def serialize(self) -> dict:
-        """
-        Returns a dict representation of the Match object structured as follows:
-
-        .. code-block::
-
-            {
-                "type": self.type,
-                "offset": self.offset,
-                "value": self.value,
-                "groups": [<serialized_groups>, ], # <- including root (itself)
-            }
-
-        :return: a dict representation of the Match object
-        :rtype: dict
-        """
-
-        o = {
-            "type": self.type,
-            "offset": self.offset,
-            "value": self.value,
-            "groups": defaultdict(list),
-        }
-        for g in self.groups(root=True):
-            o["groups"][g.key].append(g.serialize())
-        o["groups"] = dict(o["groups"])
-        return o
-
-    def json(self, *args: Any, **kwargs: Any) -> str:
-        """
-        Returns a json-string of the serialized object
-
-        :return: a json-string of the serialized object
-        :rtype: str
-        """
-
-        return json.dumps(self.serialize(), *args, **kwargs)
     
     def __repr__(self) -> str:
         return f"<[Match {self.type}] span{self._span}: {self.value}>"
 
     
-class Group:
+class Group(AbstractMatch):
 
     """
     A Group object is an abstract and expanded representation of a regex.regex.Match
@@ -631,79 +659,10 @@ class Group:
         self._end = self.end()
         self._span = self.span()
 
-    def start(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
-        """
-        Returns the start character index of self or of Group with group_name
-        
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the start index of the Match
-        :rtype: int
-        """
-
-        if rep_index is None:
-            rep_index = self.rep_index
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.start(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.starts(self.name)[rep_index]
-    
-    def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
-        """
-        Returns the end character index of self or of Group with group_name
-        
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the end index of the Match
-        :rtype: int
-        """
-
-        if rep_index is None:
-            rep_index = self.rep_index
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.end(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.ends(self.name)[rep_index]
-
-    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> Tuple[int, int]:
-        """
-        Returns the span of self or of Group with group_name
-
-        :param group_name: the name of the group
-        :type group_name: str, defaults to None
-
-        :param rep_index: the repetition index of the group
-        :type rep_index: int, defaults to 0
-
-        :return: the span of the Match
-        :rtype: Tuple[int]
-        """
-
-        if rep_index is None:
-            rep_index = self.rep_index
-
-        if group_name is not None:
-            if group := self.group(group_name):
-                return group.span(rep_index=rep_index)
-            raise NoSuchGroup(group_name)
-        return self.match.spans(self.name)[rep_index]
-
     def groups(self, group_query: Optional[str] = None, root: bool = False) -> List["Group"]:
         """
         Returns a list of repeated Group objects that belong to the Group object
-        
+
         :param group_query: the name of the group to find repetitions of
         :type group_query: str, defaults to None
 
@@ -742,90 +701,11 @@ class Group:
             return Replus.purge_overlaps(groups)  # type: ignore
         return groups
 
-    def group(self, group_name: str) -> Optional["Group"]:
-        """
-        Returns a Group object with the given group_name or None
-
-        :param group_name: the name of the group
-        :type group_name: str
-
-        :return: a Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in self.groups(group_name):
-            return group
-        return None
-
-    def first(self) -> Union["Group", None]:
-        """
-        Returns the first Group object or None
-
-        :return: the first Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in self.groups():
-            return group
-        return None
-
-    def last(self) -> Union["Group", None]:
-        """
-        Returns the last Group object or None
-
-        :return: the last Group object
-        :rtype: Union[Group, None]
-        """
-
-        for group in reversed(self.groups()):
-            return group
-        return None
-
-    def serialize(self) -> dict:
-        """
-        Returns a dict representation of the Match object structured as follows
-
-        .. code-block::
-
-            o = {
-                "key": self.key,
-                "name": self.name,
-                "offset": self.offset,
-                "value": self.value,
-                "groups": {subgroup_0: [group_object.serialize()]}
-            }
-
-        :return: a dict representation of the Match object
-        :rtype: dict
-        """
-
-        o = {
-            "key": self.key,
-            "name": self.name,
-            "offset": self.offset,
-            "value": self.value,
-            "groups": defaultdict(list)
-        }
-        for g in self.groups(root=True):
-            o["groups"][g.key].append(g.serialize())
-        o["groups"] = dict(o["groups"])
-        return o
-
-    def json(self, *args: Any, **kwargs: Any) -> str:
-        """
-        Returns a json-string of the serialized object
-
-        :return: a json-string of the serialized object
-        :rtype: str
-        """
-
-        return json.dumps(self.serialize(), *args, **kwargs)
-
     def reps(self) -> List["Group"]:
         """
         Returns a list of the Group object's repetitions
 
-        :return: a a list of the Group object's repetitions
+        :return: a list of the Group object's repetitions
         :rtype: List[Group]
         """
 
