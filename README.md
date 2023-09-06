@@ -1,6 +1,7 @@
 
 # Replus
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/biagiodistefano/replus/graph/badge.svg?token=ZD31QYQTGY)](https://codecov.io/gh/biagiodistefano/replus)
 
 A wrapper for the `regex` library for advanced pattern management.
