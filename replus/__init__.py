@@ -12,14 +12,14 @@
 """
 
 __title__ = 'replus'
-__version__ = '0.2.4'
+__version__ = '0.3.0'
 __author__ = 'Biagio Distefano'
 
 
 import json
 import os
 from pathlib import Path
-from typing import Any, List, Tuple, Union, Dict, Optional
+from typing import Any, List, Tuple, Union, Dict, Optional, Generator
 from collections import Counter
 from collections import defaultdict
 
@@ -37,16 +37,22 @@ class Replus:
     :ivar patterns: a list of tuples made of [(key, pattern, template), ...]
     :ivar patterns_src: a dict containing all of patterns_dir/\*.json combined together, "patterns" excluded
     :ivar patterns_all: all patterns that can be run, e.g. {"dates": [pattern0, pattern1], ...}
-    :ivar all_groups: a dict of list with the templates as keys, e.g. {pattern_template_a: [group_0, group_1], pattern_template_b: [group_0, group_1]}
+    :ivar all_groups: a dict of list with the templates as keys, e.g. {pattern_template_a: [group_0, group_1],
+                    pattern_template_b: [group_0, group_1]}
     """
 
-    group_pattern = r"{{((?P<special>#|\?[:>!=]|\?[aimsxl]:|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder
+    group_pattern = r"{{((?P<special>#|\?[:>!=]|\?[aimsxl]:|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder  # noqa E501
 
-    def __init__(self, patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]], whitespace_noise: Optional[str] = None, flags: Optional[int] = regex.V0):
+    def __init__(
+            self,
+            patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]],
+            whitespace_noise: Optional[str] = None, flags: Optional[int] = regex.V0
+    ):
         """
-        Instanciates the Replus engine
+        Instantiates the Replus engine
 
-        :param patterns_dir_or_dict: the path to the directory where the \*.json pattern templates are stored or a dict of dicts with the patterns
+        :param patterns_dir_or_dict: the path to the directory where the
+            \*.json pattern templates are stored or a dict of dicts with the patterns
         :type patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]]
 
         :param whitespace_noise: a pattern to replace white space in the template
@@ -56,11 +62,11 @@ class Replus:
         :type flags: int, defaults to regex.V0
         """
 
-        self.group_counter = Counter()
-        self.patterns = []
-        self.patterns_src = {}
-        self.patterns_all = {}
-        self.all_groups = defaultdict(list)
+        self.group_counter: Counter = Counter()
+        self.patterns: List[Tuple[str, str, str]] = []
+        self.patterns_src: Dict[str, List[str]] = {}
+        self.patterns_all: Dict[str, List[str]] = {}
+        self.all_groups: Dict[str, List[str]] = defaultdict(list)
         self.patterns_src, self.patterns_all = self._load_models(patterns_dir_or_dict)
         self._build_patterns()
 
@@ -84,7 +90,8 @@ class Replus:
         timeout: Optional[float] = None,
         ignore_unused: Optional[bool] = False,
         **kwargs: Any
-    ) -> List["Match"]:
+    ) -> Union[List["Match"], List["Group"]]:
+
         """
         Returns a list of Match objects
 
@@ -167,7 +174,7 @@ class Replus:
         timeout: Optional[float] = None,
         ignore_unused: Optional[bool] = False,
         **kwargs: Any
-    ) -> "Match":
+    ) -> Optional[Union["Match", "Group"]]:
         """
         Returns a single Match object
 
@@ -225,7 +232,7 @@ class Replus:
             return m
         return None
 
-    def _build_patterns(self):
+    def _build_patterns(self) -> None:
         for key, patterns in self.patterns_all.items():
             for pattern in patterns:
                 self.group_counter = Counter()
@@ -234,12 +241,12 @@ class Replus:
                 except Exception as e:
                     raise Exception(e, f"Fatal error building patterns in file '{key}.json'")
 
-    def _build_pattern(self, pattern: str, template: str):
+    def _build_pattern(self, pattern: str, template: str) -> str:
         for group_match in regex.finditer(self.group_pattern, pattern):
             return self._build_pattern(self._build_group(group_match, pattern, template), template)
         return pattern
 
-    def _build_group(self, group_match: regex.regex.Match, pattern: str, template: str):
+    def _build_group(self, group_match: regex.regex.Match, pattern: str, template: str) -> str:
         group_key = group_match.group("key")
         special = group_match.group("special")
         alts = self.patterns_src.get(group_key)
@@ -286,7 +293,7 @@ class Replus:
         return new_pattern
 
     @staticmethod
-    def _pipe_together(alts):
+    def _pipe_together(alts: List[str]) -> str:
         return "|".join(alts)
 
     @staticmethod
@@ -302,23 +309,25 @@ class Replus:
         """
 
         matches.sort(key=lambda x: x._start)
-        purged = []
+        purged: Union[List["Match"], List["Group"]] = []  # type: ignore
         if len(matches) <= 1:
             return matches
-        purged.append(matches[0])
+        purged.append(matches[0])  # type: ignore
         for m in matches[1:]:
             if m._start >= purged[-1]._end:
-                purged.append(m)
+                purged.append(m)  # type: ignore
             else:
                 if m._end >= purged[-1]._end:
                     if m.length > purged[-1].length:
                         purged.pop()
-                        purged.append(m)
+                        purged.append(m)  # type: ignore
         return purged
 
     @staticmethod
-    def _load_models(patterns: Union[os.PathLike, Dict[str, Dict]]) -> Tuple[dict]:
-        def _iter_from_path(patterns_path: os.PathLike):
+    def _load_models(
+            patterns: Union[os.PathLike, Dict[str, Dict[str, List[str]]]]
+    ) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+        def _iter_from_path(patterns_path: os.PathLike) -> Generator[Tuple[Path, str, Dict[str, List[str]]], None, None]:  # noqa E501
             patterns_path = Path(patterns_path).absolute()
             for pattern_filepath in patterns_path.iterdir():
                 if not (pattern_filepath.is_file() and pattern_filepath.suffix == ".json"):
@@ -327,18 +336,20 @@ class Replus:
                 with pattern_filepath.open("r") as f:
                     config_obj = json.load(f)
                 yield pattern_filepath, patterns_name, config_obj
-        def _iter_from_dict(patterns_dict: Dict[str, Dict]):
+
+        def _iter_from_dict(patterns_dict: Dict[str, Dict]) -> Generator[Tuple[str, str, Dict[str, List[str]]], None, None]:  # noqa E501]:
             for patterns_name, config_obj in patterns_dict.items():
                 yield patterns_name, patterns_name, config_obj
+
         if isinstance(patterns, (str, os.PathLike)):
             patterns_iterator = _iter_from_path(patterns)
         elif isinstance(patterns, dict):
-            patterns_iterator = _iter_from_dict(patterns)
+            patterns_iterator = _iter_from_dict(patterns)  # type: ignore
         else:
             raise TypeError(f"'patterns' must be of type str, os.PathLike or dict, got {type(patterns)} instead")
-        patterns_src = {}
-        patterns_all = {}
-        loaded = {}
+        patterns_src: Dict[str, List[str]] = {}
+        patterns_all: Dict[str, List[str]] = {}
+        loaded: Dict[str, str] = {}
         for pattern_filepath, patterns_name, config_obj in patterns_iterator:
             if run_patterns := config_obj.pop("$PATTERNS", None):
                 patterns_all[patterns_name] = run_patterns
@@ -372,9 +383,15 @@ class Match:
     :ivar _span: the span of the Match (_start, _end)
     """
 
-    def __init__(self, match_type: str, match: regex.regex.Match, all_groups_names: List[str], pattern: regex.regex.Pattern):
+    def __init__(
+            self,
+            match_type: str,
+            match: regex.regex.Match,
+            all_groups_names: List[str],
+            pattern: regex.regex.Pattern
+    ):
         """
-        Instanciates a Match object
+        Instantiates a Match object
 
         :param match_type: the type of the match, corresponding to the stem of the file of the pattern's template
         :type match_type: str
@@ -418,7 +435,7 @@ class Match:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.start(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.start()
     
     def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> int:
@@ -438,10 +455,10 @@ class Match:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.end(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.end()
 
-    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> Tuple[int]:
+    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = 0) -> Tuple[int, int]:
         """
         Returns the span of self or of Group with group_name
 
@@ -458,10 +475,10 @@ class Match:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.span(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.span()
 
-    def groups(self, group_query: str = None, root: bool = False) -> List["Group"]:
+    def groups(self, group_query: Optional[str] = None, root: bool = False) -> List["Group"]:
         """
         Returns a list of repeated Group objects that belong to the Match object
         
@@ -495,7 +512,7 @@ class Match:
                     break
                 i += 1
         if root:
-            return Replus.purge_overlaps(groups)
+            return Replus.purge_overlaps(groups)  # type: ignore
         return groups
 
     def group(self, group_name: str) -> Union["Group", None]:
@@ -565,7 +582,7 @@ class Match:
         o["groups"] = dict(o["groups"])
         return o
 
-    def json(self, *args, **kwargs) -> str:
+    def json(self, *args: Any, **kwargs: Any) -> str:
         """
         Returns a json-string of the serialized object
 
@@ -630,7 +647,7 @@ class Group:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.start(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.starts(self.name)[rep_index]
     
     def end(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> int:
@@ -653,10 +670,10 @@ class Group:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.end(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.ends(self.name)[rep_index]
 
-    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> Tuple[int]:
+    def span(self, group_name: Optional[str] = None, rep_index: Optional[int] = None) -> Tuple[int, int]:
         """
         Returns the span of self or of Group with group_name
 
@@ -676,10 +693,10 @@ class Group:
         if group_name is not None:
             if group := self.group(group_name):
                 return group.span(rep_index=rep_index)
-            raise NoSuchGroup
+            raise NoSuchGroup(group_name)
         return self.match.spans(self.name)[rep_index]
 
-    def groups(self, group_query: str = None, root = False) -> List["Group"]:
+    def groups(self, group_query: Optional[str] = None, root: bool = False) -> List["Group"]:
         """
         Returns a list of repeated Group objects that belong to the Group object
         
@@ -693,7 +710,7 @@ class Group:
         :rtype: List[Group]
         """
 
-        def is_next(g1, g2):
+        def is_next(g1: str, g2: str) -> bool:
             return self.root.all_group_names.index(g1) > self.root.all_group_names.index(g2)
 
         groups = []
@@ -718,10 +735,10 @@ class Group:
                 i += 1
         groups.sort(key=lambda x: x._start)
         if root:
-            return Replus.purge_overlaps(groups)
+            return Replus.purge_overlaps(groups)  # type: ignore
         return groups
 
-    def group(self, group_name) -> "Group":
+    def group(self, group_name: str) -> Optional["Group"]:
         """
         Returns a Group object with the given group_name or None
 
@@ -790,7 +807,7 @@ class Group:
         o["groups"] = dict(o["groups"])
         return o
 
-    def json(self, *args, **kwargs) -> str:
+    def json(self, *args: Any, **kwargs: Any) -> str:
         """
         Returns a json-string of the serialized object
 
