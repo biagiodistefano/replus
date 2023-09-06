@@ -34,9 +34,9 @@ class Replus:
     """
     The Replus engine class builds and compiles regular expressions based on templates.
 
-    :ivar group_counter: a Counter object to count group name occurance on each template
+    :ivar group_counter: a Counter object to count group name occurrence on each template
     :ivar patterns: a list of tuples made of [(key, pattern, template), ...]
-    :ivar patterns_src: a dict containing all of patterns_dir/*.json combined together, "patterns" excluded
+    :ivar patterns_src: a dict containing all of patterns_dir/\\*.json combined together, "patterns" excluded
     :ivar patterns_all: all patterns that can be run, e.g. {"dates": [pattern0, pattern1], ...}
     :ivar all_groups: a dict of list with the templates as keys, e.g. {pattern_template_a: [group_0, group_1],
                     pattern_template_b: [group_0, group_1]}
@@ -52,8 +52,8 @@ class Replus:
         """
         Instantiates the Replus engine
 
-        :param patterns_dir_or_dict: the path to the directory where the
-            *.json pattern templates are stored or a dict of dicts with the patterns
+        :param patterns_dir_or_dict: the path to the directory where the \\*.json pattern templates are stored or a dict
+                                    of dicts with the patterns.
         :type patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]]
 
         :param whitespace_noise: a pattern to replace white space in the template
@@ -88,7 +88,6 @@ class Replus:
         ignore_unused: Optional[bool] = False,
         **kwargs: Any
     ) -> Union[List["Match"], List["Group"]]:
-
         """
         Returns a list of Match objects
 

@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'Replus'
-copyright = '2022, Biagio Distefano'
+copyright = '2023, Biagio Distefano'
 author = 'Biagio Distefano'
 
 # The full version, including alpha/beta/rc tags
-version = '0.2.3'
+version = '0.3.0'
 release = version
 
 
