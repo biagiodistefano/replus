@@ -1,10 +1,20 @@
 
 
-class UnknownTemplateGroup(Exception):
+class ReplusException(Exception):
     pass
 
-class RepeatedSpecialGroup(Exception):
+
+class UnknownTemplateGroup(ReplusException):
     pass
 
-class NoSuchGroup(Exception):
+
+class RepeatedSpecialGroup(ReplusException):
+    pass
+
+
+class NoSuchGroup(ReplusException):
+    pass
+
+
+class PatternBuildException(ReplusException):
     pass

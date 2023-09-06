@@ -25,7 +25,7 @@ from collections import defaultdict
 
 import regex
 
-from .exceptions import NoSuchGroup, UnknownTemplateGroup, RepeatedSpecialGroup
+from .exceptions import NoSuchGroup, UnknownTemplateGroup, RepeatedSpecialGroup, PatternBuildException
 
 
 class Replus:
@@ -45,7 +45,7 @@ class Replus:
 
     def __init__(
             self,
-            patterns_dir_or_dict: Union[os.PathLike, Dict[str, Dict]],
+            patterns_dir_or_dict: Union[str, os.PathLike, Dict[str, Dict]],
             whitespace_noise: Optional[str] = None, flags: Optional[int] = regex.V0
     ):
         """
@@ -68,13 +68,9 @@ class Replus:
         self.patterns_all: Dict[str, List[str]] = {}
         self.all_groups: Dict[str, List[str]] = defaultdict(list)
         self.patterns_src, self.patterns_all = self._load_models(patterns_dir_or_dict)
+        self.flags = flags
+        self.whitespace_noise = whitespace_noise
         self._build_patterns()
-
-        if whitespace_noise is not None:
-            self.patterns = [(k, regex.compile(regex.sub(r" +|\\\s+", f"({whitespace_noise})", p), flags=flags), t)
-                             for k, p, t in self.patterns]
-        else:
-            self.patterns = [(k, regex.compile(p, flags=flags), t) for k, p, t in self.patterns]
 
     def parse(
         self,
@@ -237,13 +233,21 @@ class Replus:
             for pattern in patterns:
                 self.group_counter = Counter()
                 try:
-                    self.patterns.append((key, self._build_pattern(pattern, pattern), pattern))
+                    self.patterns.append(
+                        (
+                            key,
+                            regex.compile(self._build_pattern(pattern, pattern), flags=self.flags),
+                            pattern
+                        )
+                    )
                 except Exception as e:
-                    raise Exception(e, f"Fatal error building patterns in file '{key}.json'")
+                    raise PatternBuildException(f"Fatal error building patterns in file '{key}.json'", *e.args)
 
     def _build_pattern(self, pattern: str, template: str) -> str:
         for group_match in regex.finditer(self.group_pattern, pattern):
             return self._build_pattern(self._build_group(group_match, pattern, template), template)
+        if self.whitespace_noise is not None:
+            pattern = regex.sub(r" +|\\\s+", f"({self.whitespace_noise})", pattern)
         return pattern
 
     def _build_group(self, group_match: regex.regex.Match, pattern: str, template: str) -> str:
