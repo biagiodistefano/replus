@@ -9,7 +9,6 @@ from .test_models.tests import tests
 
 HERE = Path(__file__).parent.absolute()
 
-test_models_path = HERE / "test_models"
 engine = Replus(dict(date=date, repeated=repeated, tests=tests))
 
 
@@ -27,6 +26,7 @@ def test_parser_regex():
 
 
 def test_flags():
+    test_models_path = HERE / "test_models"
     engine_i = Replus(test_models_path, flags=regex.IGNORECASE)
     matches = engine_i.parse("Today it's January 1st 1970")
     assert len(matches) == 1

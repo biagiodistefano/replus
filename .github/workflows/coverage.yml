@@ -5,6 +5,8 @@ on:
     branches:
       - master  # Adjust to your main branch
       - testing/badges
+  pull_request:
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   coverage:
@@ -23,12 +25,9 @@ jobs:
         run: pip install poetry && poetry install
 
       - name: Run tests and collect coverage
-        run: poetry run pytest --cov=. tests/ && poetry run coverage xml
-        env:
-          COVERAGE_FILE: ${{ github.workspace }}/coverage.xml
+        run: poetry run pytest --cov=. tests/ --cov-report=xml
 
-      - name: Upload coverage report
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
-        with:
-          file: ${{ github.workspace }}/coverage.xml
-          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
