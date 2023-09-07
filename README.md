@@ -8,7 +8,7 @@
 
 A wrapper for the `regex` library for advanced pattern management.
 
-- Checkout the [Full documentation](https://replus.biagiodistefano.io/).
+- Checkout the [Full documentation](https://replus.readthedocs.io/).
 
 ## Quickstart
 
