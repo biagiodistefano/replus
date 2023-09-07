@@ -9,6 +9,13 @@ The Replus Class
     :members:
 
 
+The AbstractMatch Class
+---------------
+
+.. autoclass:: replus.AbstractMatch
+    :members:
+
+
 The Match Class
 ---------------
 
