@@ -345,7 +345,7 @@ class Replus:
 
         def _iter_from_dict(patterns_dict: Dict[str, Dict]) -> Generator[Tuple[str, str, Dict[str, List[str]]], None, None]:  # noqa E501]:
             for patterns_name_, config_obj_ in patterns_dict.items():
-                yield patterns_name_, patterns_name_, config_obj
+                yield patterns_name_, patterns_name_, config_obj_
 
         if isinstance(patterns, (str, os.PathLike)):
             patterns_iterator = _iter_from_path(patterns)
