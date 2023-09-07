@@ -57,6 +57,36 @@ will result in the following regex:
 ``(?P<date_0>(?P<day_0>[12][0-9]|0?[1-9]|3[01])/(?P<month_0>0?[1-9]|1[012])/(?P<year_0>\d{4})|(?P<year_1>\d{4})-(?P<month_1>0?[1-9]|1[012])-(?P<day_1>[12][0-9]|0?[1-9]|3[01]))``
 
 
+The same can be achieved by passing a dictionary of dictionaries to the ``Replus`` constructor:
+
+::
+
+    from replus import Replus
+
+    date = {
+      "day": [
+        "3[01]",
+        "[12][0-9]",
+        "0?[1-9]"
+      ],
+      "month": [
+        "0?[1-9]",
+        "1[012]"
+      ],
+      "year": [
+        "\\d{4}"
+      ],
+      "date": [
+        "{{day}}/{{month}}/{{year}}",
+        "{{year}}-{{month}}-{{day}}"
+      ],
+      "$PATTERNS": [
+        "{{date}}"
+      ]
+    }
+
+    engine = Replus({"date": date})
+
 Only the patterns under ``$PATTERNS`` will be matched against at runtime.
 
 Querying
@@ -144,7 +174,7 @@ template:
       ]
     }
 
-It will generate the following regexs:
+It will generate the following regexes:
 
 ``This is an unnamed number group: (?:\d).``
 

@@ -40,6 +40,8 @@ class Replus:
     :ivar patterns_all: all patterns that can be run, e.g. {"dates": [pattern0, pattern1], ...}
     :ivar all_groups: a dict of list with the templates as keys, e.g. {pattern_template_a: [group_0, group_1],
                     pattern_template_b: [group_0, group_1]}
+    :ivar flags: the regex flags to compile the patterns
+    :ivar whitespace_noise: a pattern to replace white space in the template
     """
 
     group_pattern = r"{{((?P<special>#|\?[:>!=]|\?[aimsxl]:|\?<[!=])?(?P<key>[\w_]+)(@(?P<index>\d+))?)}}"  # regex used to match the groups' placeholder  # noqa E501
@@ -308,7 +310,7 @@ class Replus:
         :param matches: a list of Match or Group objects
         :type matches: Union[List[Match], List[Group]]
 
-        :retrurn: a list of Match or Group objects
+        :return: a list of Match or Group objects
         :rtype: Union[List[Match], List[Group]]
         """
 
@@ -333,17 +335,17 @@ class Replus:
     ) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
         def _iter_from_path(patterns_path: Union[str, os.PathLike]) -> Generator[Tuple[Path, str, Dict[str, List[str]]], None, None]:  # noqa E501
             patterns_path = Path(patterns_path).absolute()
-            for pattern_filepath in patterns_path.iterdir():
-                if not (pattern_filepath.is_file() and pattern_filepath.suffix == ".json"):
+            for pattern_filepath_ in patterns_path.iterdir():
+                if not (pattern_filepath_.is_file() and pattern_filepath_.suffix == ".json"):
                     continue
-                patterns_name = pattern_filepath.stem
-                with pattern_filepath.open("r") as f:
-                    config_obj = json.load(f)
-                yield pattern_filepath, patterns_name, config_obj
+                patterns_name_ = pattern_filepath_.stem
+                with pattern_filepath_.open("r") as f:
+                    config_obj_ = json.load(f)
+                yield pattern_filepath_, patterns_name_, config_obj_
 
         def _iter_from_dict(patterns_dict: Dict[str, Dict]) -> Generator[Tuple[str, str, Dict[str, List[str]]], None, None]:  # noqa E501]:
-            for patterns_name, config_obj in patterns_dict.items():
-                yield patterns_name, patterns_name, config_obj
+            for patterns_name_, config_obj_ in patterns_dict.items():
+                yield patterns_name_, patterns_name_, config_obj
 
         if isinstance(patterns, (str, os.PathLike)):
             patterns_iterator = _iter_from_path(patterns)
@@ -543,7 +545,7 @@ class Match(AbstractMatch):
     :ivar value: the string value of the match
     :ivar offset: the offset of the match ``{"start": int, "end": int}``
     :ivar pattern: the string representation of the pattern that matched
-    :ivar lenth: the length of the match (no. of characters)
+    :ivar length: the length of the match (no. of characters)
     :ivar all_group_names: all the names of all the groups for the corresponding pattern for this match
     :ivar _start: the start offset of the Match
     :ivar _end: the end offset Match
@@ -567,7 +569,7 @@ class Match(AbstractMatch):
         :type match: regex.regex.Match
 
         :param all_groups_names: all the names of all the groups for the corresponding pattern for this match
-        :type all_group_names: List[str]
+        :type all_groups_names: List[str]
 
         :param pattern: the pattern that matched
         :type: pattern: regex.regex.Pattern
