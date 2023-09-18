@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "replus"
 version = "0.3.0"
-description = "A library for managing regula expressions with templates"
+description = "A library for managing regular expressions with templates"
 authors = ["Biagio Distefano <biagiodistefano92@gmail.com>"]
 license = "MIT"
 readme = "README.md"

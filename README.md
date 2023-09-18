@@ -106,7 +106,7 @@ it is possible to filter regexes by type, being the type given by the json's fil
 
 ```python
 filters = ["dates", "cities"]
-for match in engine.parse(my_string, *filters):
+for match in engine.parse(my_string, filters=filters):
     # do stuff
 ```
 

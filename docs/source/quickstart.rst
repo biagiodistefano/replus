@@ -130,7 +130,7 @@ will have type ``date``
 ::
 
     filters = ["date", "cities"]
-    for match in engine.parse(my_string, *filters):
+    for match in engine.parse(my_string, filters=filters):
         # do stuff
 
 
