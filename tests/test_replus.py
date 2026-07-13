@@ -8,6 +8,8 @@ import regex
 import replus
 from replus import Replus, exceptions
 
+from .conftest import found
+
 
 def test_version() -> None:
     assert replus.__version__ == "1.0.0"
@@ -38,9 +40,9 @@ def test_match(engine: Replus) -> None:
     assert len(matches) == 1
     date_ = matches[0]
     assert date_.value == "january 1st 1970"
-    assert date_.group("month_name").value == "january"
-    assert date_.group("day").value == "1"
-    assert date_.group("year").value == "1970"
+    assert found(date_.group("month_name")).value == "january"
+    assert found(date_.group("day")).value == "1"
+    assert found(date_.group("year")).value == "1970"
 
 
 def test_search_returns_none(engine: Replus) -> None:
@@ -55,21 +57,21 @@ def test_match_with_no_groups(models_dir: Path) -> None:
 
 
 def test_first(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     first = date_match.first()
     assert first is not None
     assert first.value == "january 1st 1970"
 
 
 def test_last(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     last = date_match.last()
     assert last is not None
     assert last.value == "1970"
 
 
 def test_start_end(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     assert date_match.start() == 9
     assert date_match.start("year") == 21
     assert date_match.end() == 25
@@ -77,7 +79,7 @@ def test_start_end(engine: Replus) -> None:
 
 
 def test_start_end_no_such_group(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     with pytest.raises(exceptions.NoSuchGroupError):
         date_match.start("foo")
     with pytest.raises(exceptions.NoSuchGroupError):
@@ -85,20 +87,20 @@ def test_start_end_no_such_group(engine: Replus) -> None:
 
 
 def test_span(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     assert date_match.span() == (9, 25)
     assert date_match.span("year") == (21, 25)
 
 
 def test_span_no_such_group(engine: Replus) -> None:
-    date_match = engine.search("Today is january 1st 1970", filters=["date"])
+    date_match = found(engine.search("Today is january 1st 1970", filters=["date"]))
     with pytest.raises(exceptions.NoSuchGroupError):
         date_match.span("foo")
 
 
 def test_repeat(engine: Replus) -> None:
-    repeat_match = engine.search("foobar 34 of 1997 15 of 1988 45 of 1975")
-    assert len(repeat_match.group("numyear").reps()) == 3
+    repeat_match = found(engine.search("foobar 34 of 1997 15 of 1988 45 of 1975"))
+    assert len(found(repeat_match.group("numyear")).reps()) == 3
 
 
 def test_partial(engine: Replus) -> None:
@@ -123,9 +125,19 @@ def test_whitespace_noise() -> None:
 
 def test_json(engine: Replus) -> None:
     matches = engine.parse("Here is some spam and some eggs")
-    assert matches[0].json() == '{"type": "tests", "offset": {"start": 0, "end": 31}, "value": "Here is some spam and some eggs", "groups": {}}'  # noqa: E501
+    assert matches[0].json() == (
+        '{"type": "tests", "offset": {"start": 0, "end": 31}, "value": "Here is some spam and some eggs", "groups": {}}'
+    )
     matches = engine.parse("Today is january 1st 1970")
-    assert matches[0].json() == '{"type": "date", "offset": {"start": 9, "end": 25}, "value": "january 1st 1970", "groups": {"date": [{"key": "date", "name": "date_0", "offset": {"start": 9, "end": 25}, "value": "january 1st 1970", "groups": {"month_name": [{"key": "month_name", "name": "month_name_0", "offset": {"start": 9, "end": 16}, "value": "january", "groups": {}}], "day": [{"key": "day", "name": "day_1", "offset": {"start": 17, "end": 18}, "value": "1", "groups": {}}], "year": [{"key": "year", "name": "year_1", "offset": {"start": 21, "end": 25}, "value": "1970", "groups": {}}]}}]}}'  # noqa: E501
+    assert matches[0].json() == (
+        '{"type": "date", "offset": {"start": 9, "end": 25}, "value": "january 1st 1970", '
+        '"groups": {"date": [{"key": "date", "name": "date_0", "offset": {"start": 9, "end": 25}, '
+        '"value": "january 1st 1970", "groups": {"month_name": [{"key": "month_name", '
+        '"name": "month_name_0", "offset": {"start": 9, "end": 16}, "value": "january", "groups": {}}], '
+        '"day": [{"key": "day", "name": "day_1", "offset": {"start": 17, "end": 18}, "value": "1", '
+        '"groups": {}}], "year": [{"key": "year", "name": "year_1", "offset": {"start": 21, "end": 25}, '
+        '"value": "1970", "groups": {}}]}}]}}'
+    )
 
 
 def test_patterns_duplicate(invalid_models_dir: Path) -> None:
@@ -145,4 +157,4 @@ def test_patterns_invalid_group(invalid_models_dir: Path) -> None:
 
 def test_init_wrong_type() -> None:
     with pytest.raises(TypeError):
-        Replus(1)  # type: ignore[arg-type]
+        Replus(1)  # ty: ignore[invalid-argument-type]

@@ -10,6 +10,8 @@ from replus.exceptions import (
     UnknownTemplateGroupError,
 )
 
+from .conftest import found
+
 
 def test_direct_cycle() -> None:
     with pytest.raises(CircularReferenceError, match=r"a -> a"):
@@ -114,7 +116,7 @@ def test_group_keys_survive_numeric_suffixes() -> None:
     assert compiled.group_keys == {"part_2_0": "part_2", "part_2_1": "part_2"}
     match = engine.search("xx xxx")
     assert match is not None
-    assert match.group("part_2").key == "part_2"
+    assert found(match.group("part_2")).key == "part_2"
     assert [g.value for g in match.groups("part_2")] == ["xx", "xxx"]
 
 

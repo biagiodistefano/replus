@@ -162,7 +162,7 @@ class Replus:
         )
         if not overlapped:
             return purge_overlaps(matches)
-        matches.sort(key=lambda m: m._start)  # noqa: SLF001
+        matches.sort(key=lambda m: m._start)
         return matches
 
     def search(self, string: str, **kwargs: Any) -> Match | None:

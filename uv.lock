@@ -650,6 +650,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "ty" },
+    { name = "types-regex" },
 ]
 docs = [
     { name = "furo" },
@@ -668,6 +669,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.2" },
     { name = "ruff", specifier = ">=0.12" },
     { name = "ty", specifier = ">=0.0.59" },
+    { name = "types-regex", specifier = ">=2026.7.10.20260711" },
 ]
 docs = [
     { name = "furo", specifier = ">=2024.8.6" },
@@ -962,6 +964,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b1/13/e5feb138888de1e95037c843571bbbd4ac21bf0a190507468098599a321f/ty-0.0.59-py3-none-win32.whl", hash = "sha256:cf8abb4b8095c5fe39102b8127f5886db308c8d4600909ddbc905512ce9c8163", size = 11179249, upload-time = "2026-07-12T20:21:55.752Z" },
     { url = "https://files.pythonhosted.org/packages/76/dd/52914dcbeeba92c207de40ef7109a58dcb5527aeb21c8f8feb7402aa9e29/ty-0.0.59-py3-none-win_amd64.whl", hash = "sha256:1dde20a82243d24407869e5a608c2f15efddd5cefc662aef461a5af84bfb3f8b", size = 12251079, upload-time = "2026-07-12T20:21:58.1Z" },
     { url = "https://files.pythonhosted.org/packages/d4/8f/ac36fde77e223297454c1e0aeb8888c169eaacf3163bb609e3af942c88cb/ty-0.0.59-py3-none-win_arm64.whl", hash = "sha256:987043ee9e021f49493d9135891ac69c1affeee0d4ad4480c5fa4d9c975fc91b", size = 11650921, upload-time = "2026-07-12T20:22:00.348Z" },
+]
+
+[[package]]
+name = "types-regex"
+version = "2026.7.10.20260711"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/d4/44daa013494ca2979d2b5113b10f8c22dcda420d7418291564780fb835e0/types_regex-2026.7.10.20260711.tar.gz", hash = "sha256:9aa1b142060add5d4a4f42146ebcb70e01e7b2789e7ce473255323f3c5eedded", size = 13441, upload-time = "2026-07-11T04:51:22.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/07/54a13b0f0f4cf1879bbeddb04c78b3cd7c94aa661facf648001499220547/types_regex-2026.7.10.20260711-py3-none-any.whl", hash = "sha256:c7094184715b1bd5e466cc49414cd101303d8a5167ea5a61804f31e8f168bf48", size = 11149, upload-time = "2026-07-11T04:51:21.245Z" },
 ]
 
 [[package]]

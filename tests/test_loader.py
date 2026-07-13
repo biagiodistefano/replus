@@ -50,4 +50,4 @@ def test_duplicate_error_names_both_origins() -> None:
 
 def test_invalid_source_type() -> None:
     with pytest.raises(TypeError, match="got int"):
-        load_templates(42)  # type: ignore[arg-type]
+        load_templates(42)  # ty: ignore[invalid-argument-type]

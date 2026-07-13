@@ -6,7 +6,7 @@ import json
 import os
 from collections.abc import Generator
 from pathlib import Path
-from typing import TypeAlias
+from typing import TypeAlias, cast
 
 from .exceptions import DuplicatePatternKeyError
 
@@ -36,10 +36,11 @@ def load_templates(source: TemplateSource) -> tuple[TemplateAlternatives, Templa
         DuplicatePatternKeyError: If the same key is defined by two sources.
         TypeError: If ``source`` is neither a path nor a dict.
     """
-    if isinstance(source, str | os.PathLike):
+    items: Generator[tuple[str, str, TemplateAlternatives]]
+    if isinstance(source, dict):
+        items = _iter_dict(cast("dict[str, TemplateAlternatives]", source))
+    elif isinstance(source, str | os.PathLike):
         items = _iter_path(source)
-    elif isinstance(source, dict):
-        items = ((name, name, template) for name, template in source.items())
     else:
         raise TypeError(f"'source' must be a str, os.PathLike or dict, got {type(source).__name__}")
 
@@ -59,6 +60,11 @@ def load_templates(source: TemplateSource) -> tuple[TemplateAlternatives, Templa
             origins[key] = origin
         shared.update(alternatives)
     return shared, runnable
+
+
+def _iter_dict(source: dict[str, TemplateAlternatives]) -> Generator[tuple[str, str, TemplateAlternatives]]:
+    for name, template in source.items():
+        yield name, name, template
 
 
 def _iter_path(path: str | os.PathLike[str]) -> Generator[tuple[str, str, TemplateAlternatives]]:

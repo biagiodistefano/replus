@@ -26,7 +26,7 @@ def purge_overlaps(matches: list[_M]) -> list[_M]:
     Returns:
         The overlap-free list, sorted by start offset.
     """
-    matches.sort(key=lambda m: m._start)  # noqa: SLF001
+    matches.sort(key=lambda m: m._start)
     if len(matches) <= 1:
         return matches
     purged = [matches[0]]
@@ -209,7 +209,7 @@ class Match(AbstractMatch):
             for rep_index, (start, end) in enumerate(self.match.spans(name)):
                 if self._start <= start and end <= self._end:
                     groups.append(Group(self.match, name, self, rep_index=rep_index))
-        groups.sort(key=lambda g: g._start)  # noqa: SLF001
+        groups.sort(key=lambda g: g._start)
         if root:
             return purge_overlaps(groups)
         return groups
@@ -283,14 +283,14 @@ class Group(AbstractMatch):
         order = self.root.compiled.order
         my_position = order[self.name]
         groups = []
-        for name in self.root._names_for(group_query):  # noqa: SLF001
+        for name in self.root._names_for(group_query):
             # children only: groups created after this one, captured within its span
             if order[name] <= my_position or self.match.group(name) is None:
                 continue
             for rep_index, (start, end) in enumerate(self.match.spans(name)):
                 if self._start <= start and end <= self._end:
                     groups.append(Group(self.match, name, self.root, rep_index=rep_index))
-        groups.sort(key=lambda g: g._start)  # noqa: SLF001
+        groups.sort(key=lambda g: g._start)
         if root:
             return purge_overlaps(groups)
         return groups
