@@ -115,7 +115,9 @@ class _Expansion:
         while (placeholder := PLACEHOLDER.search(pattern)) is not None:
             pattern = self._expand_one(placeholder, pattern)
         if whitespace_noise is not None:
-            pattern = _WHITESPACE.sub(f"(?:{whitespace_noise})", pattern)
+            # replace via callable: backslashes in the noise pattern (e.g. \s) must stay literal
+            replacement = f"(?:{whitespace_noise})"
+            pattern = _WHITESPACE.sub(lambda _: replacement, pattern)
         return pattern
 
     def _expand_one(self, placeholder: regex.Match[str], pattern: str) -> str:
