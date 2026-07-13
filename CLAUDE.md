@@ -4,45 +4,66 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Replus is a PyPI library that wraps the `regex` package for template-based regex pattern management. Patterns are defined as JSON templates (or dicts) with `{{group}}` placeholders that get compiled into named-group regexes.
+Replus is a PyPI library (v1.0.0) that wraps the `regex` package for template-based regex
+pattern management. Patterns are defined as JSON templates (or dicts) with `{{group}}`
+placeholders that compile into named-group regexes, queried via nested `Match`/`Group` objects.
 
 ## Commands
 
-Dependency management is via Poetry (virtualenv created in-project at `.venv`):
+Everything runs through uv (src layout, PEP 621, `uv_build` backend):
 
 ```bash
-poetry install                                    # install deps
-poetry run pytest                                 # run all tests
-poetry run pytest tests/test_replus.py::test_match  # run a single test
-poetry run pytest --cov=. tests/ --cov-report=xml # tests with coverage (what CI runs)
-poetry run ruff check .                           # lint (line-length 120)
-poetry run mypy replus                            # type check (disallow_untyped_defs is on)
+uv sync --all-groups                              # install all dependency groups
+uv run pytest                                     # run all tests
+uv run pytest tests/test_replus.py::test_match    # run a single test
+uv run pytest --cov=replus                        # coverage — gate is 100% lines AND branches (fail_under=100)
+uv run ruff check .                               # lint (line-length 120, broad ruleset)
+uv run ruff format .                              # format
+uv run ty check                                   # type check (types-regex stubs in dev group)
+uv run sphinx-build -W -b html docs docs/_build   # build docs (Furo + MyST)
 ```
 
-Docs are Sphinx-based (`docs/`), built on Read the Docs: `make -C docs html`.
+CI (`.github/workflows/ci.yml`) runs exactly these gates on 3.11–3.14. Releases publish to
+PyPI via trusted publishing on GitHub release (`release.yml`). Version lives ONLY in
+`pyproject.toml`; `__version__` reads package metadata.
 
 ## Architecture
 
-The entire library lives in two files:
+`src/replus/` — the data flows loader → builder → engine → results:
 
-- `replus/__init__.py` — everything: the `Replus` engine plus the `Match`/`Group` result classes (both extending `AbstractMatch`).
-- `replus/exceptions.py` — exception hierarchy rooted at `ReplusException`.
+- `loader.py` — merges all non-`$PATTERNS` keys from every source (JSON file or dict) into
+  ONE shared namespace; duplicates raise `DuplicatePatternKeyError`. `$PATTERNS` entries
+  become runnable patterns; the file stem/dict key becomes the match "type" used by
+  `filters`/`exclude`.
+- `builder.py` — expands `{{placeholders}}` into named groups `key_N`. Expansion is
+  **leftmost-first with rescan** (iterative, not recursive): group numbering and
+  `{{#key}}` backreference resolution depend on this exact order — do not "optimize" it.
+  Cycles are rejected up front via a dependency-graph DFS (`CircularReferenceError`).
+  Produces frozen `CompiledPattern` objects carrying group metadata (`group_names`,
+  `group_keys` name→key, `order`).
+- `results.py` — `Match`/`Group` (both `__slots__`). `Group.key` comes from the build-time
+  `group_keys` map (never derived from the name). `purge_overlaps` keeps the longest of
+  each overlapping run. `Group.groups()` returns only groups *after* it in creation order
+  whose spans fall inside its own span.
+- `engine.py` — `Replus`: `finditer` (lazy, raw) → `parse` (sorted, overlap-purged) →
+  `search` (first or None). Kwargs after the string are keyword-only.
+- All errors inherit `ReplusError` (`exceptions.py`); never use `assert` for validation.
 
-### Template compilation flow
+## Behavioral contracts (locked by tests)
 
-1. `Replus._load_models()` accepts either a directory of `*.json` files or a dict of dicts. All non-`$PATTERNS` keys across all files are merged into one shared namespace (`patterns_src`) — duplicate keys across files raise `KeyError`. Only entries under each file's `$PATTERNS` key are compiled as top-level runnable patterns; the file's stem becomes the match "type" used for `filters`/`exclude` in `parse()`.
-2. `_build_patterns()` / `_build_pattern()` recursively expand `{{key}}` placeholders (matched by the `group_pattern` class attribute). Each expansion of a key becomes a named group `key_N`, where `N` is a per-template counter (`group_counter` resets per pattern) — this numbering is why the same logical group appears as `day_0`, `day_1`, etc. in the compiled regex.
-3. Special placeholder prefixes: `{{?:key}}`/`{{?>key}}`/lookarounds/inline-flag prefixes produce unnamed groups; `{{#key}}` and `{{#key@n}}` produce backreferences to the n-th previous expansion of `key`. Keys may also be defined with the prefix in the template (e.g. `"?:number"`) and referenced without it.
-4. `all_groups` maps each pattern template string to its ordered list of generated group names; `Match`/`Group.groups()` rely on this ordering (a `Group`'s children are the groups that come after it in that list and fall within its span).
-
-### Runtime results
-
-`parse()` runs `regex.finditer` for every compiled pattern and wraps hits in `Match` objects. Unless `overlapped=True`, results go through `purge_overlaps()`, which keeps the longest of overlapping matches. `Group.group("name")` navigates nested groups by key (without the `_N` suffix); repeated captures are exposed via `rep_index`/`reps()`.
-
-### Tests
-
-`tests/test_models/` contains equivalent template definitions both as `.json` files and as `.py` dicts — the dict versions are the JSON ones translated to Python, and tests exercise both loading paths. `tests/invalid_models/` holds deliberately broken templates for error-path tests. Remember that backslashes in JSON templates must be double-escaped (`\\d`).
+- `tests/test_replus.py` is the ported 0.3.0 suite: exact compiled pattern strings and
+  byte-exact `serialize()`/`json()` output. Breaking these means breaking user templates.
+- The counter quirk is intentional: `{{?:key}}` advances `key`'s counter without creating
+  a named group (`{{abg}} {{?:abg}} {{abg}}` → `abg_0`, `abg_2`).
+- `tests/test_models/` fixtures exist as both `.json` and `.py` dicts to exercise both
+  loading paths; keep them in sync. `tests/invalid_models/` holds broken templates.
+- JSON templates need double-escaped backslashes (`\\d`).
 
 ## Gotchas
 
-- The version string is duplicated in `pyproject.toml`, `replus/__init__.py` (`__version__`), and the README title — keep them in sync when bumping.
+- The 100% coverage gate includes **branch** coverage: an unreachable defensive branch
+  will fail CI. Write code without dead branches rather than adding pragmas.
+- In tests, use `found()` from `conftest.py` to narrow `Match | None` / `Group | None` —
+  ty checks tests too.
+- `docs/superpowers/` holds design specs/plans, excluded from the Sphinx build via
+  `exclude_patterns` in `docs/conf.py`.

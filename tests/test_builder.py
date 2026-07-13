@@ -106,6 +106,9 @@ def test_special_group_advances_counter() -> None:
     # an unnamed {{?:key}} advances key's counter, exactly like 0.3.x
     engine = Replus({"t": {"abg": ["a", "b"], "$PATTERNS": ["{{abg}} {{?:abg}} {{abg}}"]}})
     assert engine.patterns[0].regex.pattern == "(?P<abg_0>a|b) (?:a|b) (?P<abg_2>a|b)"
+    # 0.3.0 probed abg_0, abg_1, ... and stopped at the gap, losing abg_2
+    match = found(engine.search("a b a"))
+    assert [g.name for g in match.groups("abg")] == ["abg_0", "abg_2"]
 
 
 def test_group_keys_survive_numeric_suffixes() -> None:
