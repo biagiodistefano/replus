@@ -4,7 +4,7 @@ from importlib.metadata import version as _version
 
 project = "replus"
 author = "Biagio Distefano"
-copyright = "2022, Biagio Distefano"  # noqa: A001
+copyright = "2022, Biagio Distefano"
 release = _version("replus")
 version = release
 
