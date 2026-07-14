@@ -80,6 +80,15 @@ engine.search(text)                    # first match or None
 engine.finditer(text)                  # lazy, unpurged iterator
 ```
 
+Rewrite captured groups in place — e.g. to fix OCR errors only inside matches,
+with a literal string or a callable receiving the `Group`:
+
+```python
+engine.sub("ID 1809900 and 1809900", {"prefix": "l"})
+# 'ID l809900 and l809900'
+engine.sub(text, {"prefix": lambda g: g.value.replace("1", "l")})
+```
+
 There's more: backreferences (`{{#key}}`, `{{#key@2}}`), unnamed/atomic groups and
 lookarounds (`{{?:key}}`, `{{?>key}}`, `{{?=key}}`, …), repeated captures
 (`group.reps()`), whitespace-noise injection, and overlap purging. See the

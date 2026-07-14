@@ -46,7 +46,9 @@ PyPI via trusted publishing on GitHub release (`release.yml`). Version lives ONL
   each overlapping run. `Group.groups()` returns only groups *after* it in creation order
   whose spans fall inside its own span.
 - `engine.py` — `Replus`: `finditer` (lazy, raw) → `parse` (sorted, overlap-purged) →
-  `search` (first or None). Kwargs after the string are keyword-only.
+  `search` (first or None); `sub()` rewrites captures of chosen keys in place
+  (edits collected per group span, applied right-to-left; overlapping targets raise).
+  Kwargs after the string are keyword-only.
 - All errors inherit `ReplusError` (`exceptions.py`); never use `assert` for validation.
 
 ## Behavioral contracts (locked by tests)

@@ -42,6 +42,10 @@ Full modernization. The template syntax, compiled patterns, group numbering, and
 
 ### Added
 
+- `Replus.sub()`: group-targeted replacement — rewrite the captures of chosen
+  template keys inside every match (literal strings or callables receiving the
+  `Group`), leaving the rest of the string untouched. Built for OCR-style
+  normalization. Overlapping targets raise the new `OverlappingReplacementError`.
 - `Replus.finditer()`: lazy iterator over raw (unpurged, unsorted) matches.
 - `CompiledPattern`: frozen dataclass exposing each pattern's regex, source
   template, and group metadata.

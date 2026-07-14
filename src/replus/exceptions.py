@@ -31,3 +31,7 @@ class PatternBuildError(ReplusError):
 
 class NoSuchGroupError(ReplusError):
     """A queried group name does not exist in the match."""
+
+
+class OverlappingReplacementError(ReplusError):
+    """Two replacement targets capture overlapping spans, so the edits are ambiguous."""

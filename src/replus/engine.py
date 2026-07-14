@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
 import regex
 
 from .builder import CompiledPattern, build_patterns
+from .exceptions import NoSuchGroupError, OverlappingReplacementError
 from .loader import TemplateSource, load_templates
-from .results import Match, purge_overlaps
+from .results import Group, Match, purge_overlaps
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator, Mapping
 
 
 class Replus:
@@ -173,5 +175,57 @@ class Replus:
             **kwargs: Same keyword arguments as :meth:`parse`.
         """
         return next(iter(self.parse(string, **kwargs)), None)
+
+    def sub(
+        self,
+        string: str,
+        replacements: Mapping[str, str | Callable[[Group], str]],
+        **parse_kwargs: Any,
+    ) -> str:
+        """Replace the captures of the given template keys inside every match.
+
+        Only matched spans are touched; the rest of the string passes through
+        unchanged. Every repetition of a group is replaced. A string replacement
+        is inserted literally (no escape processing); a callable receives the
+        :class:`~replus.results.Group` and returns the new text::
+
+            engine.sub(text, {"prefix": lambda g: g.value.replace("1", "l")})
+
+        Args:
+            string: The string to match against.
+            replacements: Map of template key to replacement text, or to a
+                callable computing it from the captured :class:`~replus.results.Group`.
+            **parse_kwargs: Same keyword arguments as :meth:`parse`, except
+                ``overlapped``, which is not supported.
+
+        Returns:
+            The string with all replacements applied.
+
+        Raises:
+            NoSuchGroupError: If a key is not defined by any compiled pattern.
+            OverlappingReplacementError: If two requested keys capture
+                overlapping spans (e.g. a group and one of its children).
+            ValueError: If ``overlapped=True`` is passed.
+        """
+        if parse_kwargs.pop("overlapped", False):
+            raise ValueError("sub() does not support overlapped matching: edits would be ambiguous")
+        known_keys = {key for compiled in self.patterns for key in compiled.group_keys.values()}
+        if unknown := set(replacements) - known_keys:
+            raise NoSuchGroupError(f"no pattern defines the group(s): {', '.join(sorted(unknown))}")
+
+        edits: list[tuple[int, int, str, str]] = []  # (start, end, key, new_text)
+        for match in self.parse(string, **parse_kwargs):
+            for key, replacement in replacements.items():
+                for group in match.groups(key):
+                    new_text = replacement if isinstance(replacement, str) else replacement(group)
+                    edits.append((group.start(), group.end(), key, new_text))
+
+        edits.sort(key=lambda edit: edit[:2])
+        for (_, end_a, key_a, _), (start_b, _, key_b, _) in pairwise(edits):
+            if start_b < end_a:
+                raise OverlappingReplacementError(f"replacements for {key_a!r} and {key_b!r} target overlapping spans")
+        for start, end, _, new_text in reversed(edits):
+            string = string[:start] + new_text + string[end:]
+        return string
 
     purge_overlaps = staticmethod(purge_overlaps)

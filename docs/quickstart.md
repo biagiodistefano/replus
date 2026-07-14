@@ -95,5 +95,49 @@ All three accept the same keyword arguments and forward the extras
 (`pos`, `endpos`, `partial`, `timeout`, …) to
 [`regex.finditer`](https://github.com/mrabarnett/mrab-regex/blob/hg/docs/Features.md).
 
+## Replacing inside matches
+
+`sub()` rewrites the text captured by specific template keys, leaving everything
+else — including unmatched text — untouched. This is built for normalization jobs
+like OCR-error correction, where a `1` misread for an `l` must only be fixed
+*inside* a matched serial number:
+
+```python
+engine = Replus({
+    "serial": {
+        "prefix": ["[1lI]"],
+        "digits": ["\\d{6}"],
+        "serial": ["{{prefix}}{{digits}}"],
+        "$PATTERNS": ["{{serial}}"],
+    }
+})
+
+engine.sub("ID 1809900 and 1809900", {"prefix": "l"})
+# 'ID l809900 and l809900'
+```
+
+A replacement can also be a callable receiving the {class}`~replus.results.Group`,
+which is the right tool when the fix depends on what was captured:
+
+```python
+engine.sub(
+    "ID 1809900 and I809900",
+    {"prefix": lambda g: g.value.replace("1", "l").replace("I", "l")},
+)
+# 'ID l809900 and l809900'
+```
+
+Rules of the road:
+
+- String replacements are inserted **literally** — no `\g<1>`-style escape processing.
+- **Every repetition** of a group is replaced; a callable can branch on
+  `g.rep_index` to target specific ones.
+- A key defined by no pattern raises `NoSuchGroupError` (typo guard); a key that
+  simply didn't capture in a match is skipped.
+- Requesting overlapping targets (a group and one of its children) raises
+  `OverlappingReplacementError` instead of guessing which edit wins.
+- `sub()` accepts the same keyword arguments as `parse()` (e.g. `filters`),
+  except `overlapped`.
+
 Continue with the [template syntax reference](templates.md) for backreferences,
 unnamed groups, lookarounds, and repeated captures.
