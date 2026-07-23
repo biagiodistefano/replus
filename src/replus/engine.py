@@ -60,13 +60,10 @@ class Replus:
         exclude: list[str] | None = None,
         pos: int | None = None,
         endpos: int | None = None,
-        flags: int = 0,
         overlapped: bool = False,
         partial: bool = False,
         concurrent: bool | None = None,
         timeout: float | None = None,
-        ignore_unused: bool = False,
-        **kwargs: Any,
     ) -> Iterator[Match]:
         """Lazily yield every match of every (selected) pattern, in pattern order.
 
@@ -79,32 +76,30 @@ class Replus:
             exclude: Skip patterns of these types.
             pos: Start position of the matching.
             endpos: End position of the matching.
-            flags: Extra flags forwarded to :func:`regex.finditer`.
             overlapped: Allow overlapping matches of the same pattern.
             partial: Allow partial matches.
             concurrent: Release the GIL while matching.
             timeout: Timeout in seconds for the matching.
-            ignore_unused: Ignore unused positional or keyword arguments in ``kwargs``.
-            **kwargs: Any further arguments accepted by :func:`regex.finditer`.
 
         Yields:
             One :class:`~replus.results.Match` per raw regex match.
+
+        Note:
+            Regex ``flags`` are a compile-time setting: pass them once to
+            :class:`Replus` (``Replus(..., flags=regex.IGNORECASE)``). They cannot be
+            supplied per call, because the patterns are already compiled.
         """
         for compiled in self.patterns:
             if (filters and compiled.type not in filters) or (exclude and compiled.type in exclude):
                 continue
-            for match in regex.finditer(
-                pattern=compiled.regex,
-                string=string,
-                flags=flags,
+            for match in compiled.regex.finditer(
+                string,
                 pos=pos,
                 endpos=endpos,
                 overlapped=overlapped,
                 partial=partial,
                 concurrent=concurrent,
                 timeout=timeout,
-                ignore_unused=ignore_unused,
-                **kwargs,
             ):
                 yield Match(compiled, match)
 
@@ -116,13 +111,10 @@ class Replus:
         exclude: list[str] | None = None,
         pos: int | None = None,
         endpos: int | None = None,
-        flags: int = 0,
         overlapped: bool = False,
         partial: bool = False,
         concurrent: bool | None = None,
         timeout: float | None = None,
-        ignore_unused: bool = False,
-        **kwargs: Any,
     ) -> list[Match]:
         """Return every match, sorted by position.
 
@@ -135,16 +127,16 @@ class Replus:
             exclude: Skip patterns of these types.
             pos: Start position of the matching.
             endpos: End position of the matching.
-            flags: Extra flags forwarded to :func:`regex.finditer`.
             overlapped: Allow overlapping matches (and skip overlap purging).
             partial: Allow partial matches.
             concurrent: Release the GIL while matching.
             timeout: Timeout in seconds for the matching.
-            ignore_unused: Ignore unused positional or keyword arguments in ``kwargs``.
-            **kwargs: Any further arguments accepted by :func:`regex.finditer`.
 
         Returns:
             The list of :class:`~replus.results.Match` objects, sorted by start offset.
+
+        Note:
+            Regex ``flags`` are a compile-time setting; see :meth:`finditer`.
         """
         matches = list(
             self.finditer(
@@ -153,13 +145,10 @@ class Replus:
                 exclude=exclude,
                 pos=pos,
                 endpos=endpos,
-                flags=flags,
                 overlapped=overlapped,
                 partial=partial,
                 concurrent=concurrent,
                 timeout=timeout,
-                ignore_unused=ignore_unused,
-                **kwargs,
             )
         )
         if not overlapped:
