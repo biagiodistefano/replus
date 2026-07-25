@@ -20,6 +20,7 @@ from .exceptions import (
     PatternBuildError,
     ReplusError,
     UnknownTemplateGroupError,
+    UnsupportedOperationError,
 )
 from .results import AbstractMatch, Group, Match, purge_overlaps
 
@@ -39,6 +40,7 @@ __all__ = [
     "Replus",
     "ReplusError",
     "UnknownTemplateGroupError",
+    "UnsupportedOperationError",
     "__version__",
     "purge_overlaps",
 ]

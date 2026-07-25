@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 import regex
 
 from .builder import CompiledPattern, build_patterns
-from .exceptions import NoSuchGroupError, OverlappingReplacementError
+from .exceptions import NoSuchGroupError, OverlappingReplacementError, UnsupportedOperationError
 from .loader import TemplateSource, load_templates
 from .results import Group, Match, purge_overlaps
 
@@ -194,10 +194,10 @@ class Replus:
             NoSuchGroupError: If a key is not defined by any compiled pattern.
             OverlappingReplacementError: If two requested keys capture
                 overlapping spans (e.g. a group and one of its children).
-            ValueError: If ``overlapped=True`` is passed.
+            UnsupportedOperationError: If ``overlapped=True`` is passed.
         """
         if parse_kwargs.pop("overlapped", False):
-            raise ValueError("sub() does not support overlapped matching: edits would be ambiguous")
+            raise UnsupportedOperationError("sub() does not support overlapped matching: edits would be ambiguous")
         known_keys = {key for compiled in self.patterns for key in compiled.group_keys.values()}
         if unknown := set(replacements) - known_keys:
             raise NoSuchGroupError(f"no pattern defines the group(s): {', '.join(sorted(unknown))}")

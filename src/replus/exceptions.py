@@ -35,3 +35,8 @@ class NoSuchGroupError(ReplusError):
 
 class OverlappingReplacementError(ReplusError):
     """Two replacement targets capture overlapping spans, so the edits are ambiguous."""
+
+
+class UnsupportedOperationError(ReplusError):
+    """An operation requested is not supported by the engine or method."""
+
