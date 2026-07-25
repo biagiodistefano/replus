@@ -51,6 +51,9 @@ class Replus:
             flags=flags,
             whitespace_noise=whitespace_noise,
         )
+        self._known_keys: set[str] = {
+            key for compiled in self.patterns for key in compiled.group_keys.values()
+        }
 
     def finditer(
         self,
@@ -198,8 +201,7 @@ class Replus:
         """
         if parse_kwargs.pop("overlapped", False):
             raise UnsupportedOperationError("sub() does not support overlapped matching: edits would be ambiguous")
-        known_keys = {key for compiled in self.patterns for key in compiled.group_keys.values()}
-        if unknown := set(replacements) - known_keys:
+        if unknown := set(replacements) - self._known_keys:
             raise NoSuchGroupError(f"no pattern defines the group(s): {', '.join(sorted(unknown))}")
 
         edits: list[tuple[int, int, str, str]] = []  # (start, end, key, new_text)
