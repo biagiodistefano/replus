@@ -35,6 +35,28 @@ def test_flags(models_dir: Path) -> None:
     assert len(engine_ii.parse("Today it's January 1st 1970")) == 0
 
 
+def test_flags_are_compile_time_only(engine: Replus) -> None:
+    # flags belong on the constructor; a per-call flags= is rejected loudly rather
+    # than forwarded to an already-compiled pattern (which regex refuses).
+    with pytest.raises(TypeError):
+        engine.parse("anything", flags=regex.IGNORECASE)  # ty: ignore[unknown-argument]
+    with pytest.raises(TypeError):
+        list(engine.finditer("anything", flags=regex.IGNORECASE))  # ty: ignore[unknown-argument]
+    with pytest.raises(TypeError):
+        engine.search("anything", flags=regex.IGNORECASE)
+    with pytest.raises(TypeError):
+        engine.sub("anything", {}, flags=regex.IGNORECASE)
+
+
+def test_unknown_runtime_kwarg_is_rejected(engine: Replus) -> None:
+    # ignore_unused / arbitrary **kwargs were never functional on a compiled pattern;
+    # a typo now surfaces as a TypeError instead of being silently swallowed.
+    with pytest.raises(TypeError):
+        engine.parse("anything", ignore_unused=True)  # ty: ignore[unknown-argument]
+    with pytest.raises(TypeError):
+        engine.search("anything", bogus_kwarg=["x"])
+
+
 def test_match(engine: Replus) -> None:
     matches = engine.parse("Today is january 1st 1970")
     assert len(matches) == 1
