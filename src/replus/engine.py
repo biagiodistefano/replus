@@ -27,6 +27,13 @@ class Replus:
         flags: The ``regex`` flags patterns were compiled with.
     """
 
+    patterns_src: dict[str, Any]
+    patterns_all: dict[str, list[str]]
+    patterns: list[CompiledPattern]
+    whitespace_noise: str | None
+    flags: int
+    _known_keys: set[str]
+
     def __init__(
         self,
         patterns_dir_or_dict: TemplateSource,
