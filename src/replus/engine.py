@@ -244,8 +244,13 @@ class Replus:
         for (_, end_a, key_a, _), (start_b, _, key_b, _) in pairwise(edits):
             if start_b < end_a:
                 raise OverlappingReplacementError(f"replacements for {key_a!r} and {key_b!r} target overlapping spans")
-        for start, end, _, new_text in reversed(edits):
-            string = string[:start] + new_text + string[end:]
-        return string
+        chunks: list[str] = []
+        last_index = 0
+        for start, end, _, new_text in edits:
+            chunks.append(string[last_index:start])
+            chunks.append(new_text)
+            last_index = end
+        chunks.append(string[last_index:])
+        return "".join(chunks)
 
     purge_overlaps = staticmethod(purge_overlaps)
