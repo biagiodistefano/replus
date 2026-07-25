@@ -1,6 +1,6 @@
 import pytest
 
-from replus import Group, NoSuchGroupError, OverlappingReplacementError, Replus
+from replus import Group, NoSuchGroupError, OverlappingReplacementError, Replus, UnsupportedOperationError
 
 
 @pytest.fixture(scope="module")
@@ -66,7 +66,7 @@ def test_sub_overlapping_edits_raise(engine: Replus) -> None:
 
 
 def test_sub_overlapped_matching_rejected(serial_engine: Replus) -> None:
-    with pytest.raises(ValueError, match="overlapped"):
+    with pytest.raises(UnsupportedOperationError, match="overlapped"):
         serial_engine.sub("1809900", {"prefix": "l"}, overlapped=True)
 
 

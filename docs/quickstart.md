@@ -91,9 +91,15 @@ engine.parse(text, exclude=["cities"])  # everything but cities
 | `search(text)` | first `Match` or `None` | same as `parse` |
 | `finditer(text)` | lazy `Iterator[Match]` | raw, unpurged |
 
-All three accept the same keyword arguments and forward the extras
-(`pos`, `endpos`, `partial`, `timeout`, …) to
-[`regex.finditer`](https://github.com/mrabarnett/mrab-regex/blob/hg/docs/Features.md).
+All three accept the same keyword arguments and forward the match-time extras
+(`pos`, `endpos`, `overlapped`, `partial`, `concurrent`, `timeout`) to
+[`regex`](https://github.com/mrabarnett/mrab-regex/blob/hg/docs/Features.md).
+
+```{note}
+Regex `flags` are a **compile-time** setting: pass them once when constructing the
+engine (`Replus("patterns", flags=regex.IGNORECASE)`). They cannot be given per call,
+because the patterns are already compiled by then.
+```
 
 ## Replacing inside matches
 
