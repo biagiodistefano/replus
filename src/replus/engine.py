@@ -166,7 +166,36 @@ class Replus:
             string: The string to match against.
             **kwargs: Same keyword arguments as :meth:`parse`.
         """
-        return next(iter(self.parse(string, **kwargs)), None)
+        filters: list[str] | None = kwargs.get("filters")
+        exclude: list[str] | None = kwargs.get("exclude")
+        endpos: int | None = kwargs.get("endpos")
+
+        search_kwargs = {k: v for k, v in kwargs.items() if k not in ("filters", "exclude")}
+
+        best_search_endpos = endpos
+        candidate_matches: list[Match] = []
+
+        for compiled in self.patterns:
+            if (filters and compiled.type not in filters) or (exclude and compiled.type in exclude):
+                continue
+            cur_kwargs = dict(search_kwargs)
+            cur_kwargs["endpos"] = best_search_endpos
+            m = compiled.regex.search(string, **cur_kwargs)
+            if m is not None:
+                match_obj = Match(compiled, m)
+                candidate_matches.append(match_obj)
+                start_plus_one = match_obj._start + 1
+                best_search_endpos = (
+                    start_plus_one if best_search_endpos is None else min(best_search_endpos, start_plus_one)
+                )
+
+        if not candidate_matches:
+            return None
+
+        max_end = max(m._end for m in candidate_matches)
+        parse_kwargs = dict(kwargs)
+        parse_kwargs["endpos"] = max_end
+        return next(iter(self.parse(string, **parse_kwargs)), None)
 
     def sub(
         self,
