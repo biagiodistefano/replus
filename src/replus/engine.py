@@ -92,8 +92,10 @@ class Replus:
             :class:`Replus` (``Replus(..., flags=regex.IGNORECASE)``). They cannot be
             supplied per call, because the patterns are already compiled.
         """
+        filter_set = set(filters) if filters is not None else None
+        exclude_set = set(exclude) if exclude is not None else None
         for compiled in self.patterns:
-            if (filters and compiled.type not in filters) or (exclude and compiled.type in exclude):
+            if (filter_set and compiled.type not in filter_set) or (exclude_set and compiled.type in exclude_set):
                 continue
             for match in compiled.regex.finditer(
                 string,
@@ -169,6 +171,8 @@ class Replus:
         filters: list[str] | None = kwargs.get("filters")
         exclude: list[str] | None = kwargs.get("exclude")
         endpos: int | None = kwargs.get("endpos")
+        filter_set = set(filters) if filters is not None else None
+        exclude_set = set(exclude) if exclude is not None else None
 
         search_kwargs = {k: v for k, v in kwargs.items() if k not in ("filters", "exclude")}
 
@@ -176,7 +180,7 @@ class Replus:
         candidate_matches: list[Match] = []
 
         for compiled in self.patterns:
-            if (filters and compiled.type not in filters) or (exclude and compiled.type in exclude):
+            if (filter_set and compiled.type not in filter_set) or (exclude_set and compiled.type in exclude_set):
                 continue
             cur_kwargs = dict(search_kwargs)
             cur_kwargs["endpos"] = best_search_endpos
