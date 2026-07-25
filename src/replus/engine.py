@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import heapq
 from itertools import pairwise
 from typing import TYPE_CHECKING, Any
 
@@ -52,15 +53,13 @@ class Replus:
         self.patterns_src, self.patterns_all = load_templates(patterns_dir_or_dict)
         self.whitespace_noise = whitespace_noise
         self.flags = flags
-        self.patterns: list[CompiledPattern] = build_patterns(
+        self.patterns = build_patterns(
             self.patterns_src,
             self.patterns_all,
             flags=flags,
             whitespace_noise=whitespace_noise,
         )
-        self._known_keys: set[str] = {
-            key for compiled in self.patterns for key in compiled.group_keys.values()
-        }
+        self._known_keys = {key for compiled in self.patterns for key in compiled.group_keys.values()}
 
     def finditer(
         self,
@@ -99,12 +98,9 @@ class Replus:
             :class:`Replus` (``Replus(..., flags=regex.IGNORECASE)``). They cannot be
             supplied per call, because the patterns are already compiled.
         """
-        filter_set = set(filters) if filters is not None else None
-        exclude_set = set(exclude) if exclude is not None else None
-        for compiled in self.patterns:
-            if (filter_set and compiled.type not in filter_set) or (exclude_set and compiled.type in exclude_set):
-                continue
-            for match in compiled.regex.finditer(
+        for compiled in self._selected_patterns(filters, exclude):
+            yield from self._match_stream(
+                compiled,
                 string,
                 pos=pos,
                 endpos=endpos,
@@ -112,8 +108,40 @@ class Replus:
                 partial=partial,
                 concurrent=concurrent,
                 timeout=timeout,
-            ):
-                yield Match(compiled, match)
+            )
+
+    def _selected_patterns(self, filters: list[str] | None, exclude: list[str] | None) -> Iterator[CompiledPattern]:
+        """Yield the compiled patterns kept after applying ``filters``/``exclude``, in order."""
+        filter_set = set(filters) if filters is not None else None
+        exclude_set = set(exclude) if exclude is not None else None
+        for compiled in self.patterns:
+            if (filter_set and compiled.type not in filter_set) or (exclude_set and compiled.type in exclude_set):
+                continue
+            yield compiled
+
+    def _match_stream(
+        self,
+        compiled: CompiledPattern,
+        string: str,
+        *,
+        pos: int | None,
+        endpos: int | None,
+        overlapped: bool,
+        partial: bool,
+        concurrent: bool | None,
+        timeout: float | None,
+    ) -> Iterator[Match]:
+        """Yield the :class:`Match` objects of one compiled pattern, in start order."""
+        for match in compiled.regex.finditer(
+            string,
+            pos=pos,
+            endpos=endpos,
+            overlapped=overlapped,
+            partial=partial,
+            concurrent=concurrent,
+            timeout=timeout,
+        ):
+            yield Match(compiled, match)
 
     def parse(
         self,
@@ -168,45 +196,76 @@ class Replus:
         matches.sort(key=lambda m: m._start)
         return matches
 
-    def search(self, string: str, **kwargs: Any) -> Match | None:
+    def search(
+        self,
+        string: str,
+        *,
+        filters: list[str] | None = None,
+        exclude: list[str] | None = None,
+        pos: int | None = None,
+        endpos: int | None = None,
+        overlapped: bool = False,
+        partial: bool = False,
+        concurrent: bool | None = None,
+        timeout: float | None = None,
+    ) -> Match | None:
         """Return the first match of :meth:`parse`, or None.
+
+        Returns the same match as ``next(iter(parse(...)), None)`` but evaluated
+        lazily: each pattern is scanned only as far as needed to settle the first
+        (leftmost, overlap-purged) match, rather than materializing every match
+        first. Because matching stops early, an error a pattern would raise only
+        *past* that first match (e.g. a ``timeout`` on catastrophic backtracking
+        later in the string) may not surface here as it would in :meth:`parse`.
 
         Args:
             string: The string to match against.
-            **kwargs: Same keyword arguments as :meth:`parse`.
+            filters: Only run patterns of these types (template names); all if None.
+            exclude: Skip patterns of these types.
+            pos: Start position of the matching.
+            endpos: End position of the matching.
+            overlapped: Allow overlapping matches (and skip overlap purging).
+            partial: Allow partial matches.
+            concurrent: Release the GIL while matching.
+            timeout: Timeout in seconds for the matching.
+
+        Returns:
+            The first :class:`~replus.results.Match` by position, or None.
+
+        Note:
+            Regex ``flags`` are a compile-time setting; see :meth:`finditer`.
         """
-        filters: list[str] | None = kwargs.get("filters")
-        exclude: list[str] | None = kwargs.get("exclude")
-        endpos: int | None = kwargs.get("endpos")
-        filter_set = set(filters) if filters is not None else None
-        exclude_set = set(exclude) if exclude is not None else None
-
-        search_kwargs = {k: v for k, v in kwargs.items() if k not in ("filters", "exclude")}
-
-        best_search_endpos = endpos
-        candidate_matches: list[Match] = []
-
-        for compiled in self.patterns:
-            if (filter_set and compiled.type not in filter_set) or (exclude_set and compiled.type in exclude_set):
-                continue
-            cur_kwargs = dict(search_kwargs)
-            cur_kwargs["endpos"] = best_search_endpos
-            m = compiled.regex.search(string, **cur_kwargs)
-            if m is not None:
-                match_obj = Match(compiled, m)
-                candidate_matches.append(match_obj)
-                start_plus_one = match_obj._start + 1
-                best_search_endpos = (
-                    start_plus_one if best_search_endpos is None else min(best_search_endpos, start_plus_one)
-                )
-
-        if not candidate_matches:
-            return None
-
-        max_end = max(m._end for m in candidate_matches)
-        parse_kwargs = dict(kwargs)
-        parse_kwargs["endpos"] = max_end
-        return next(iter(self.parse(string, **parse_kwargs)), None)
+        # One lazy Match stream per selected pattern, each already ordered by start.
+        streams = [
+            self._match_stream(
+                compiled,
+                string,
+                pos=pos,
+                endpos=endpos,
+                overlapped=overlapped,
+                partial=partial,
+                concurrent=concurrent,
+                timeout=timeout,
+            )
+            for compiled in self._selected_patterns(filters, exclude)
+        ]
+        # heapq.merge yields matches in start order, ties broken by pattern index —
+        # exactly the stable ordering parse() feeds to purge_overlaps.
+        merged = heapq.merge(*streams, key=lambda match: match._start)
+        winner = next(merged, None)
+        if winner is None or overlapped:
+            # overlapped mode skips purging, exactly like parse(): the earliest-start
+            # match (stable by pattern order) is already the answer.
+            return winner
+        # Replay purge_overlaps' keep-longest rule over the first overlapping run.
+        # The first match that starts at/after the winner's end opens a new run and
+        # can never displace element [0], so we can stop there.
+        for match in merged:
+            if match._start >= winner._end:
+                break
+            if match._end >= winner._end and match.length > winner.length:
+                winner = match
+        return winner
 
     def sub(
         self,

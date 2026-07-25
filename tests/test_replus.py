@@ -43,7 +43,7 @@ def test_flags_are_compile_time_only(engine: Replus) -> None:
     with pytest.raises(TypeError):
         list(engine.finditer("anything", flags=regex.IGNORECASE))  # ty: ignore[unknown-argument]
     with pytest.raises(TypeError):
-        engine.search("anything", flags=regex.IGNORECASE)
+        engine.search("anything", flags=regex.IGNORECASE)  # ty: ignore[unknown-argument]
     with pytest.raises(TypeError):
         engine.sub("anything", {}, flags=regex.IGNORECASE)
 
@@ -54,7 +54,7 @@ def test_unknown_runtime_kwarg_is_rejected(engine: Replus) -> None:
     with pytest.raises(TypeError):
         engine.parse("anything", ignore_unused=True)  # ty: ignore[unknown-argument]
     with pytest.raises(TypeError):
-        engine.search("anything", bogus_kwarg=["x"])
+        engine.search("anything", bogus_kwarg=["x"])  # ty: ignore[unknown-argument]
 
 
 def test_match(engine: Replus) -> None:

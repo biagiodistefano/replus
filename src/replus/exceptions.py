@@ -39,4 +39,3 @@ class OverlappingReplacementError(ReplusError):
 
 class UnsupportedOperationError(ReplusError):
     """An operation requested is not supported by the engine or method."""
-
